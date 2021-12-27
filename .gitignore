@@ -1,5 +1,49 @@
+# Macos stuff
+**/.DS_Store
+
+# Emacs droppings
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Local History for Visual Studio Code
+.history/
+
+# Built Visual Studio Code Extensions
+*.vsix
+
+# STM32 Cube
+bin/
+tmp/
+*.tmp
+*.bak
+*.swp
+*~.nib
+
+
+# Eclipse
+Debug/
+Release/
+.metadata/
+
 # Prerequisites
 *.d
+
+# Duane's stuff
+build/
 
 # Object files
 *.o
