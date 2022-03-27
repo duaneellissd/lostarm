@@ -23,7 +23,8 @@ export ROOT_DIR
 endif
 
 SCRIPTS_DIR   := $(ROOT_DIR)/scripts
-BUILD_DIR    := $(ROOT_DIR)/build
+BUILD_DIR    := $(ROOT_DIR)/build.d
+LIB_DIR      := ${BUILD_DIR}/lib.d
 MAKEFILE_DIR := $(SCRIPTS_DIR)/makefile
 
 include $(MAKEFILE_DIR)/names.mak

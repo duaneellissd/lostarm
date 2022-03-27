@@ -59,7 +59,7 @@ static void test1(void)
 }
 
 
-int TEST_main( void )
+int main( int argc, char **argv )
 {
   DEBUG_por_init( 0, 115200 );
   test1();

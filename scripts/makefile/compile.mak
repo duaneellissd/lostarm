@@ -4,63 +4,117 @@ ifndef BUILD_SUBDIR_NAME
 $(error BUILD_SUBDIR_NAME is not defined)
 endif
 
-OBJ_DIR :=$(BUILD_DIR)/$(BUILD_SUBDIR_NAME)
+TARGET_OBJ_DIR :=$(BUILD_DIR)/target/$(BUILD_SUBDIR_NAME)
+HOST_OBJ_DIR   :=$(BUILD_DIR)/host/$(BUILD_SUBDIR_NAME)
 
 
-$(OBJ_DIR):
+$(TARGET_OBJ_DIR):
+	$(HIDE)mkdir -p $(@)
+
+$(HOST_OBJ_DIR):
 	$(HIDE)mkdir -p $(@)
 
 
-C_OBJS   += $(C_SOURCES:%.c=$(OBJ_DIR)/%.o)
-CXX_OBJS += $(CXX_SOURCES:%.c=$(OBJ_DIR)/%.o)
-AS_OBJS  += $(AS_SOURCES:%.S=$(OBJ_DIR)/%.o)
+TARGET_C_OBJS   += $(C_SOURCES:%.c=$(TARGET_OBJ_DIR)/%.o)
+TARGET_CXX_OBJS += $(CXX_SOURCES:%.c=$(TARGET_OBJ_DIR)/%.o)
+TARGET_AS_OBJS  += $(AS_SOURCES:%.S=$(TARGET_OBJ_DIR)/%.o)
 
-ALL_OBJS += $(C_OBJS)
-ALL_OBJS += $(CXX_OBJS)
-ALL_OBJS += $(AS_OBJS)
+HOST_C_OBJS   += $(C_SOURCES:%.c=$(HOST_OBJ_DIR)/%.o)
+HOST_CXX_OBJS += $(CXX_SOURCES:%.c=$(HOST_OBJ_DIR)/%.o)
+HOST_AS_OBJS  += $(AS_SOURCES:%.S=$(HOST_OBJ_DIR)/%.o)
 
+TARGET_ALL_OBJS := $(TARGET_EXTRA_OBJS) $(TARGET_C_OBJS) $(TARGET_CXX_OBJS) $(TARGET_AS_OBJS)
 
-CFLAGS += -g 
-CFLAGS += $(ALL_DEFINES)
-CFLAGS += $(ALL_INCLUDE_DIRS:%=-I%)
+$(info TARGET_OBJ_DIR $(TARGET_OBJ_DIR))
+$(info C_SOURCES $(C_SOURCES))
+$(info TARGET_ALL_OBJS $(TARGET_ALL_OBJS))
+$(info TARGET_CXX_OBJS $(TARGET_CXX_OBJS))
+$(info TARGET_AS_OBJS  $(TARGET_AS_OBJS))
 
-CXXFLAGS += -g
-CXXFLAGS += $(ALL_DEFINES)
-CXXFLAGS += $(ALL_INCLUDE_DIRS)
+HOST_ALL_OBJS := $(HOST_EXTRA_OBJS) $(HOST_C_OBJS) $(HOST_CXX_OBJS) $(HOST_AS_OBJS)
 
-COMPILE.c   := $(CC) $(CFLAGS)
-COMPILE.cxx := $(CXX) $(CXXFLAGS)
+TARGET_CFLAGS := $(TARGET_EXTRA_CFLAGS) -g $(ALL_DEFINES:%=-D%) $(ALL_INCLUDE_DIRS:%=-I%)
 
-$(OBJ_DIR)/%.o: %.c
-	@${ECHO} "Compile: ${*}.c"
+HOST_CFLAGS := $(HOST_EXTRA_CFLAGS) -g $(ALL_DEFINES:%=-D%) $(ALL_INCLUDE_DIRS:%=-I%)
+
+TARGET_CXXFLAGS := $(TARGET_EXTRA_CXXFLAGS) -g $(ALL_DEFINES) $(ALL_INCLUDE_DIRS:%=-I%)
+
+HOST_CXXFLAGS := $(HOST_EXTRA_CXXFLAGS) -g $(ALL_DEFINES) $(ALL_INCLUDE_DIRS:%=-I%)
+
+TARGET_COMPILE.c   := $(TARGET_CC) $(TARGET_CFLAGS)
+TARGET_COMPILE.cxx := $(TARGET_CXX) $(TARGET_CXXFLAGS)
+
+HOST_COMPILE.c   := $(HOST_CC) $(HOST_CFLAGS)
+HOST_COMPILE.cxx := $(HOST_CXX) $(HOST_CXXFLAGS)
+
+TARGET_GCC_DEPFLAGS := -MT $@ -MMD -MP -MF $(TARGET_OBJ_DIR)/${*}.d
+HOST_GCC_DEPFLAGS :=-MT $@ -MMD -MP -MF $(HOST_OBJ_DIR)/${*}.d
+
+$(TARGET_OBJ_DIR)/%.o: %.c
+	${ECHO} "Compile(-c-target): ${*}.c" 
 	${HIDE}${MKDIR_P} ${dir $@}
-	$(COMPILE.c) -c -o $@ $<
+	$(TARGET_COMPILE.c) ${TARGET_GCC_DEPFLAGS} ${TARGET_CFLAGS} -c -o $@ $<
 
-$(OBJ_DIR)/%.o: %.cpp
-	@${ECHO} "Compile: ${*}.cpp"
+$(TARGET_OBJ_DIR)/%.o: %.cpp
+	@${ECHO} "Compile(-c-target): ${*}.cpp"
 	${HIDE}${MKDIR_P} ${dir $@}
-	$(COMPILE.cxx) -c -o $@ $<
+	$(TARGET_COMPILE.cxx) ${TARGET_GCC_DEPFLAGS}  ${TARGET_CFLAGS} -c -o $@ $<
 
-$(OBJ_DIR)/%.s: %.c
+$(TARGET_OBJ_DIR)/%.s: %.c
 	@${ECHO} "Compile(-S): ${*}.c"
 	${HIDE}${MKDIR_P} ${dir $@}
-	$(COMPILE.c) -S -o $@ $<
+	$(TARGET_COMPILE.c) ${TARGET_GCC_DEPFLAGS}  ${TARGET_ASFLAGS} -S -o $@ $<
 
-$(OBJ_DIR)/%.s: %.cpp
+$(TARGET_OBJ_DIR)/%.s: %.cpp
 	@${ECHO} "Compile(-S): ${*}.cpp"
 	${HIDE}${MKDIR_P} ${dir $@}
-	$(COMPILE.cxx) -S -o $@ $<
+	$(TARGET_COMPILE.cxx) ${TARGET_GCC_DEPFLAGS} $(TARGET_CXXFLAGS) -S -o $@ $<
 
-$(OBJ_DIR)/%.i: %.c
+$(TARGET_OBJ_DIR)/%.i: %.c
 	@${ECHO} "Compile(-S): ${*}.c"
 	${HIDE}${MKDIR_P} ${dir $@}
-	$(COMPILE.c) -E -o $@ $<
+	$(TARGET_COMPILE.c) ${TARGET_GCC_DEPFLAGS} $(TARGET_CFLAGS) -E -o $@ $<
 
-$(OBJ_DIR)/%.i: %.cpp
+$(TARGET_OBJ_DIR)/%.i: %.cpp
 	@${ECHO} "Compile(-E): ${*}.cpp"
 	${HIDE}${MKDIR_P} ${dir $@}
-	$(COMPILE.cxx) -E -o $@ $<
+	$(TARGET_COMPILE.cxx) ${TARGET_GCC_DEPFLAGS} $(TARGET_CXXFLAGS) -E -o $@ $<
 
-#-import $(OBJ_DIR)/*.d
+-include $(TARGET_OBJ_DIR)/*.d
+
+$(HOST_OBJ_DIR)/%.o: %.c
+	@${ECHO} "Compile(-c-host): ${*}.c"
+	${HIDE}${MKDIR_P} ${dir $@}
+	$(HOST_COMPILE.c) ${HOST_GCC_DEPFLAGS} $(HOST_CFLAGS) -c -o $@ $<
+
+$(HOST_OBJ_DIR)/%.o: %.cpp
+	@${ECHO} "Compile(-cpp-host): ${*}.cpp"
+	${HIDE}${MKDIR_P} ${dir $@}
+	$(HOST_COMPILE.cxx) ${HOST_GCC_DEPFLAGS} $(HOST_CFLAGS) -c -o $@ $<
+
+$(HOST_OBJ_DIR)/%.s: %.c
+	@${ECHO} "Compile(-S): ${*}.c"
+	${HIDE}${MKDIR_P} ${dir $@}
+	$(HOST_COMPILE.c) ${HOST_GCC_DEPFLAGS} $(HOST_ASFLAGS) -S -o $@ $<
+
+$(HOST_OBJ_DIR)/%.s: %.cpp
+	@${ECHO} "Compile(-S): ${*}.cpp"
+	${HIDE}${MKDIR_P} ${dir $@}
+	$(HOST_COMPILE.cxx) ${HOST_GCC_DEPFLAGS} $(HOST_CXXFLAGS) -S -o $@ $<
+
+$(HOST_OBJ_DIR)/%.i: %.c
+	@${ECHO} "Compile(-S): ${*}.c"
+	${HIDE}${MKDIR_P} ${dir $@}
+	$(HOST_COMPILE.c) ${HOST_GCC_DEPFLAGS} $(HOST_CFLAGS) -E -o $@ $<
+
+$(HOST_OBJ_DIR)/%.i: %.cpp
+	@${ECHO} "Compile(-E): ${*}.cpp"
+	${HIDE}${MKDIR_P} ${dir $@}
+	$(HOST_COMPILE.cxx) ${HOST_GCC_DEPFLAGS} $(HOST_CXXFLAGS) -E -o $@ $<
+
+-include $(HOST_OBJ_DIR)/*.d
+
+%.i_target: $(TARGET_OBJ_DIR)/%.i
+%.i_host: ${HOST_OBJ_DIR}/%.i
 
 

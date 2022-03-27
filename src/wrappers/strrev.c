@@ -1,16 +1,17 @@
 #include "lostarm/lostarm.h"
+#include "lostarm/debug.h"
 #include "lostarm/wrapped/_string.h"
 
 
-char *strrev( char *s )
+char *MISSING_strrev( char *s )
 {
   return strnrev( s, strlen(s) );
 }
 
-char *strnrev( char *s, size_t n )
+char *MISSING_strnrev( char *s, size_t n )
 {
   int lhs, rhs;
-
+  int tmp;
   lhs = 0;
   rhs = n-1;
   

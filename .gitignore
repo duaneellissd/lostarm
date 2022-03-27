@@ -1,5 +1,6 @@
 # Macos stuff
-**/.DS_Store
+._.DS_Store
+.DS_Store
 
 # Emacs droppings
 *~
@@ -42,8 +43,9 @@ Release/
 # Prerequisites
 *.d
 
-# Duane's stuff
+# lostarm stuff
 build/
+build.d/
 
 # Object files
 *.o

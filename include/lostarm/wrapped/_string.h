@@ -3,6 +3,7 @@
 #include <string.h>
 
 #define strrev(s)  MISSING_strrev(s)
+#define strnrev(s,n)  MISSING_strnrev(s,n)
 
 /** 
  * @brief reverse a string

@@ -15,6 +15,7 @@
 
 #include <lostarm/wrapped/_stdio.h>
 #include <lostarm/wrapped/_string.h>
+#include <lostarm/wrapped/_stdbool.h>
 #include <lostarm/wrapped/_inttypes.h>
 
 
