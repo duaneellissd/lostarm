@@ -8,7 +8,7 @@ int TIMER_LW_remain( uintptr_t token, int period_msecs )
   uint32_t tbefore;
 
   tbefore = (uint32_t)(token);
-  tnow = TIMER_now();
+  tnow = TIMER_getNow();
   
   int tmp;
 

@@ -1,3 +1,7 @@
+#if !defined(LOSTARM_ADT_CBUF_H)
+#define LOSTARM_ADT_CBUF_H "57cb6ad5-3080-422e-9ce4-501947ada5d8"
+
+
 #include <lostarm/lostarm.h>
 
 /** @file 
@@ -8,6 +12,9 @@
  * Assumptions:
  *   There can be many tasks sending (inserting) data.
  *   There is a single task reading (removing) data.
+ *
+ * NOTE:
+ *   These function locks IRQs at the CPU during updates.
  */
 
 /** @brief Basic ADT for circular buffer
@@ -19,9 +26,9 @@ struct cbuf {
     uint8_t *p8; //!< scalable pointer for the buffer
   } mPtr; //!< Buffer for the circular data
 
-  size_t nBufSize_InBytes; //!< sizeof(buffer)
-  size_t mWrIndex; //!< Where next insert will go, when inserted
-  size_t mRdIndex; //!< Where next value will come from when removed
+  size_t BufSize_InElements; 
+  volatile size_t mInsertIndex; //!< Where next insert will go, when inserted
+  volatile size_t mRemoveIndex; //!< Where next value will come from when removed
   size_t elem_size; //!< Size of one element int the buffer
 
 
@@ -42,34 +49,21 @@ struct cbuf {
  */
 EXTERN_C void CBUF_Init( struct cbuf *pCBuf, void *pBase, size_t elementSize, size_t nElements );
 
-/** Initilize a circular buffer with RTOS (locks,etc)
- * @param pCBuf - control struct (already initialized via CBUF_Init()
- * @param sem_name - name for RX mutex.
- */
-EXTERN_C void RTOS_CBUF_Init( struct cbuf *pCBuf, const char *mutex_name, const char *sem_name, void *pBase  );
-
-/** Lock the rtos, returns -1 on timeout
- * @param pCBuf - control structure
- * @param timeout - in milliseconds.
- * @returns -1 on error, 0 success
- */
-EXTERN_C int CBUF_Lock( struct cbuf *pCBuf, int timeout );
-/** Unlock the circular buffer
- * @param pCBuf - the control structure
- */
-EXTERN_C void CBUF_UnLock( struct cbuf *pCBuf );
-
 /** Returns number of elements available in the buffer
  * @param pCBuf - the control structure
  * @returns number of elements in the buffer
  */
-EXTERN_C size_t CBUF_nDataAvial( const struct cbuf *pCBuf );
+EXTERN_C size_t CBUF_nDataAvail( const struct cbuf *pCBuf );
 
 /** Returns the space that can be inserted (in elements) 
  * @param pCBuf - the control structure.
  * @returns number of elements (space) available to insert
  */
 EXTERN_C size_t CBUF_nSpaceAvial( const struct cbuf *pCBuf );
+
+/* the Unget16 and Remove16 are helpers for the debug getkey function. */
+EXTERN_C int CBUF_Unget16( struct cbuf *pCbuf, uint16_t keystroke );
+EXTERN_C int CBUF_Remove16( struct cbuf *pCBuf, uint16_t keystroke );
 
 /** Inserts data into the circular buffer
  * @param pCBuf - the control structure
@@ -85,13 +79,12 @@ EXTERN_C size_t CBUF_Insert( struct cbuf *pCBuf, const void *vpInsertThis, size_
  * @param nElements - how many to try to remove
  * @returns count of actual removed
  */
-EXTERN_C size_t CBUF_Remove( struct cbuf *pCBuf, void *vpPutHere, size_t nElements );
+EXTERN_C size_t CBUF_Remove( struct cbuf *pCBuf, void *vpPutHere, size_t nElements, int timeout );
 
 /** RTOS - Obtain an insertion point into a circular buffer, and lock the buffer
  * @param pCBuf - the control structure
  * @param vppInsertBufp - the buffer pointer will go here.
- * @param pNElements - the space avaialble will be placed here. 
- * @param timeout - in milliseconds for the lock
+ * @param pNElements - the space (in elements) avaialble will be placed here. 
  *
  * @returns -1 on lock timeout
  * @note: This obtains a lock on the CBUF, you must call DMA_DONE! to unlock.
@@ -99,14 +92,7 @@ EXTERN_C size_t CBUF_Remove( struct cbuf *pCBuf, void *vpPutHere, size_t nElemen
 EXTERN_C int CBUF_DmaInsertStart( struct cbuf *pCBuf, void **vppInsertBufp, size_t *pNElements, int timeout );
 
 
-/** Obtain an insertion point into a circular buffer
- * @param pCBuf - the control structure
- * @param vppRemoveBufp - the buffer pointer will go here.
- * @param pNElements - the space avaialble will be placed here.
- */
-EXTERN_C void CBUF_DmaRemoveStart( struct cbuf *pCBuf, void **vppRemoveBufp, size_t *pNElements, int timeout );
-
-/** RTOS Obtain an insertion point into a circular buffer 
+/** Obtain an insertion point into a circular buffer 
  * @param pCBuf - the control structure
  * @param vppRemoveBufp - the buffer pointer will go here.
  * @param pNElements - the space avaialble will be placed here.
@@ -143,3 +129,4 @@ EXTERN_C size_t CBUF_RemoveAvial( const struct cbuf *pCBuf );
 
 EXTERN_C size_t CBUF_InsertAvial( const struct cbuf *pCBuf );
 
+#endif

@@ -1,3 +1,5 @@
+#if !defined(LOSTARM_LBUF_STRUCT_H)
+#define LOSTARM_LBUF_STRUCT_H "11bd8bee-ea9c-46d0-a401-4c8108d7fb0d"
 #include <lostarm/lostarm.h>
 
 /** @file 

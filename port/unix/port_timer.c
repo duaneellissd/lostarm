@@ -6,14 +6,8 @@
 
 static uint64_t timezero;
 
-void TIMER_por_init(void)
-{
-  /* nothing here */
-  TIMER_now_highres();
-}
-
-
-uint64_t TIMER_now_highres(void)
+/* really simple convert absolute time into real a 64bit number in uSecs */
+uint64_t TIMER64_getNow_highres(void)
 {
   struct timeval tv;
   uint64_t r;
@@ -22,54 +16,34 @@ uint64_t TIMER_now_highres(void)
 
   r = tv.tv_sec * 1000000;
   r = r + tv.tv_usec;
+
+  /* remember the start time */
   if( timezero == 0 ){
     timezero = r;
   }
+
+  /* return time from startup time */
   r = r - timezero;
   return r;
 }
   
 
-uint64_t TIMER_uSecs( void )
-{
-  uint64_t v;
 
-  v = TIMER_now_highres();
-  return v;
+/* this code is simple, we just use the HIGH RESOULUTION timer for everything */
+void TIMER_por_init(void)
+{
+  /* we call getNow_highres() to set 'timezero' */
+  TIMER64_getNow_highres();
 }
 
+
+
+/* return time in mSecs */
 uint32_t TIMER_getNow( void )
 {
   uint64_t v;
 
-  v = TIMER_uSecs();
+  v = TIMER_getNow_highres();
   v = v / 1000;
   return (uint32_t)(v);
 }
-
-void TIMER_init(void)
-{
-  /* this will set timezero */
-  timezero = TIMER_now_highres();
-}
-
-#if defined( LINUX_TEST_TIMER )
-
-
-int main( int argc, char **argv )
-{
-  TIMER_por_init();
-
-  printf("NOW %lld\n", ((long long)(TIMER_now_highres())));
-  sleep(1);
-  printf("NOW %lld\n", ((long long)(TIMER_now_highres())));
-  sleep(1);
-  printf("NOW %lld\n", ((long long)(TIMER_now_highres())));
-}
-
-#endif
-
-	
-  
-
-  

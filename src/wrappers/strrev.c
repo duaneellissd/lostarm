@@ -10,8 +10,14 @@ char *MISSING_strrev( char *s )
 
 char *MISSING_strnrev( char *s, size_t n )
 {
-  int lhs, rhs;
-  int tmp;
+  size_t lhs, rhs;
+  size_t tmp;
+
+  tmp = strlen(s);
+  if( n > tmp ){
+    n = tmp;
+  }
+
   lhs = 0;
   rhs = n-1;
   

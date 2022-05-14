@@ -2,18 +2,13 @@
 #include <lostarm/timer.h>
 
 
- uint64_t TIMER64_now(void)
- {
-   uint32_t nv;
-   uint64_t r;
-   
-   nv = TIMER64_hw_read();
-   TIMER64_update(nv);
+uint32_t TIMER_getNow(void)
+{
+  uint64_t v;
+  
+  v = TIMER64_getNow_highres();
+  v = v / 1000;
+  return v;
+}
 
-   r = _timer64.thigh;
-   r = r << _timer64.nbits;
-   nv = _timer64.tlow;
-   nv = nv & _timer64.tmask;
-   r = r | nv;
-   return r;
- }
+   

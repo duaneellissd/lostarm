@@ -1,35 +1,30 @@
 #if !defined(CORE_TIMER_PORT_H)
-#define CORE_TIMER_PORT_H
+#define CORE_TIMER_PORT_H "1f56da1b-4637-4c93-a118-90e8e584b423"
+
 
 #include <lostarm/lostarm.h>
 
 /** Initilize the time subsystem.
  * @file Timer Port Requirements.
  * 
- * Also see: \ref concept_timeout
+ * The PORT must provide:
  *
- * There are different approaches for timing one can use/take.
+ *  1) a function that reads a high speed hardware timer at some frequency.
+ *  2) The prefered timer is a 1mhz counter, but others work.
+ *     Preferred range 1 to 10 mhz
+ *  3) It is prefered that this is at least 32bit (24 is ok)
+ *  4) RISCV - this is "mtime", for CortexM3, see: DWT->CYCNT
+ *  5) See lostarm_32to64_timer below
  *
- * Ultimately the best solution is a 32bit free running counter at 1mhz.
- * Or - a 32bt free running counter at any speed >= 1mhz
- * this supplies a highresolution clock, which a lowres clock can use.
- *
- * The timer scheme purposely does not use an IRQ, many platforms use a hardware
- * timer with an interrupt to generate time - this purposely does not.
- *
- * But what should you use for this clock?
- *
- * For most ARM CortexM series, you can use the Cycle Count
- * register in the DWT (debug, watch, trace) module.
- * (provide the chip actually impliments such a feature! some do not)
- *
- * NOTE: The ARM CycleCount register burns power - not a good solution for batteries!
- *
- * for RiscV - the "mtime" register is possible depending on how you use it.
- * The mtime counts from zero and rolls over after 2^XLEN counts, some implimentations
- * also reset the timer every system tick (this cause problems with this code)
- *
+ * The port must provide a function to read the hardware timer.
  */
+EXTERN_C uint64_t TIMER_getNow_highres(void);
+
+/* This is provided based upon the above high res timer */
+EXTERN_C uint32_t TIMER_getNow(void);
+
+/* The port must also provide an initialization function */
+EXTERN_C void TIMER_por_init(void);
 
 /** @group _32to64_timer
  * @{
@@ -38,7 +33,7 @@
 /** This helps a 32bit platform have a 64bit time base.
  * only a few platforms might require this helper.
  */
-struct lostarm_32to64_timer {
+struct _timer64 {
   uint32_t tlast;          //<! Last reported timer value
   uint64_t tnow;           //<! Current time in high res clock
   uint32_t mask;           //<! precomputed mask for sign extension
@@ -47,50 +42,31 @@ struct lostarm_32to64_timer {
 };
 
 /** For use by the 32to64 helpers */
-EXTERN_C struct lostarm_32to64_timer _32to64_timer;
+EXTERN_C struct _timer64 _timer64;
 
-/** Initialzie the 32to64 helpers
+/* the initialization code must call this function to init the above.
  *
- * @param nbits - How many bits long is the high speed counter.
- * @param highsped_freq_hz - frequency in hz the high speed clock runs at.
+ * @param clockbits - number of bits in the highres clock. (16, 24, 32)
+ *                  = preference is for a 32bit clock
+ * @param clockfreq - frequency in hz of the clock.
+ *                  = preference is or a 1 to 10 mhz clock.
  *
- * The most optimal is if the high speed clock runs at 1mhz.
+ * Limitations:
+ *    The pseudo timer must be 'serviced' before the highres timer overflows.
+ *
+ *    Assumuming 1mhz clock
+ *
+ * In practice that means:
+ *    a 32bit counter overflows after 4294.96 seconds or 71.58 minutes
+ *    At 24bits, it overflows every 16.77 seconds
+ *    At 16bits every 65 milliseconds (not good)
+ *
+ * Good examples to use:
+ *    RISCV - mtime register.
+ *    CortexM3 - DWT->CYCCNT register.
  */
-EXTERN_C void TIMER_32to64_init( int nbits, uint32_t highspeed_freq_hz );
+EXTERN_C void TIMER_32to64_init( int clockbits, uint32_t clkfreq );
 
-/** Update the 32to64 timer with a new reading from the high speed clock.
- * @param new_timer_value - the value of the hardware timer
- * @returns updated 64bit high speed timer.
- */
-EXTERN_C uint64_t TIMER_32to64_update( uint32_t new_timer_value );
-
-
-/** convert the highresolution time count to milliseconds
- * @param highspeed_time
- * @returns time converted to milliseconds.
- */
-EXTERN_C uint64_t TIMER_32to64_to_mSecs( uint64_t highspeed_time );
-
-/** convert the highresolution time count to milliseconds
- * @param highspeed_time
- * @returns time converted to milliseconds.
- */
-EXTERN_C uint64_t TIMER_32to64_to_uSecs( uint64_t highspeed_time );
-
-/*
- * @}
- */
-
-
-/** Required function, initialize the hardware timer
- * This function may use the 32to64 helpers (above)
- */
-EXTERN_C void TIMER_por_init(void);
-
-/** Required function, returns the current time in some high resolution clock.
- * Porting note: this must be as fast as possible.
- */
-EXTERN_C uint64_t TIMER_now_highres(void);
 
 /** Convert the high speed clock count into microseconds.
  * For example if the main clock is 150mhz, this would
@@ -99,20 +75,6 @@ EXTERN_C uint64_t TIMER_now_highres(void);
 EXTERN_C uint64_t TIMER_highres_2_usecs(uint64_t value);
 
 
-#if defined(__linux__) || (__APPLE_CC__)
-/* we lie here */
-#define LOSTARM_PORT_HIGHRES_NBITS 32
-/* we normalize this to 1mhz */
-#define LOSTARM_PORT_HIGHRES_FREQ_HZ 1000000
-#endif
-  
-#if !defined(LOSTARM_PORT_HIGHRES_NBITS)
-#error Missing define LOSTARM_HIGHRES_NBITS
-#endif
-
-#if !defined(LOSTARM_PORT_HIGHRES_FREQ_HZ)
-#error Missing define LOSTARM_PORT_HIGHRES_FREQ_HZ - the frequency of the high resolution clock.
-#endif
 
 #endif
   

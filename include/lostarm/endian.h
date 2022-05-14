@@ -1,3 +1,6 @@
+#if !defined(LOSTARM_ENDIAN_H)
+#define LOST_ARM_ENDIAN_H "4f708181-ebd4-4821-a0c6-eee5b59ea851"
+
 #include <lostarm/lostarm.h>
 
 /** @file
@@ -94,3 +97,4 @@ EXTERN_C void  ENDIAN_memmove_L2H_64( uint64_t *pDestBuffer, const uint64_t *pSr
 
 
 
+#endif
