@@ -1,0 +1,29 @@
+{
+    "type": "static-library",
+    "name" : "lostarm",
+
+    "details" : {
+	"public" : {
+	    "include-dirs" : [
+		"include"
+	    ]
+	}
+
+	"src" : {
+	    "GLOB" : [
+		"src/*/*.c"
+		"src/*/*.cpp"
+		"src/*/*.S"
+		"ll_hal/${CHIPNAME}/*.c",
+		"ll_hal/${CHIPNAME}/*.cpp",
+		"ll_hal/${CHIPNAME}/*.S"
+		]
+	}
+
+	"doxygen" : [
+	    "include/*/*/*.h", 
+	    "oxygen/*.dox"
+	]
+    }
+}
+

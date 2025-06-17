@@ -12,6 +12,9 @@ auto-save-list
 tramp
 .\#*
 
+# Random things
+*.bak
+
 # Visual Studio Code
 .vscode/*
 !.vscode/settings.json
@@ -19,6 +22,8 @@ tramp
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
+
+venv/
 
 # Local History for Visual Studio Code
 .history/
@@ -30,16 +35,13 @@ tramp
 bin/
 tmp/
 *.tmp
-*.bak
 *.swp
 *~.nib
-
 
 # Eclipse
 Debug/
 Release/
 .metadata/
-
 # Prerequisites
 *.d
 
@@ -103,3 +105,4 @@ __pycache__/
 
 # SCONS
 .sconsign.dblite
+

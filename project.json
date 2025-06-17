@@ -1,0 +1,35 @@
+{
+    "type" : "dispatch",
+
+    "all" : [
+	"@applications",
+	"@libraries"
+    ],
+    
+    "if( ${TARGET} == 'host' )" : {
+		"applications" : {
+		    "testapps/ta_0010_debug_raw"   : "testapp.json",
+	    	"testapps/ta_0020_timer_lw"    : "testapp.json",
+	    	"testapps/ta_0010_debug_basic" : "testapp.json"
+		}
+    },
+    
+    "libraries" : [
+		"boards/boards.json",
+		"lostarm/lostarm.json"
+	],
+
+	"variables" : {
+		"one" : 1,
+		"two" : 2,
+		"thing1" : "thing2"
+	},
+
+
+	"if( $foo )" : {
+		"variables" : {
+			"dog" : "walter",
+			"cat" : "garfield"
+		}
+	}
+}

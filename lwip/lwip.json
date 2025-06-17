@@ -1,0 +1,22 @@
+{
+    "type" : "static-library",
+    "name" : "lwip",
+
+    "details" : {
+	"public" : {
+	    "include-dir" : "${CWD}/include"
+	}
+
+	"src" : [
+	    "${CWD}api/*.c",
+	    "${CWD}/apps/http/*.c",
+	    "${CWD}/core/*.c"
+	    "${CWD}/core/ipv4/*.c",
+	    "${CWD}/netif/*.c"
+	    "${CWD}/OS/*.c"
+	]
+
+	"doxygen" : [
+	    "
+    }
+	

@@ -1,0 +1,4 @@
+{
+    "type" : "redirect",
+    "redirect-to" : "${BOARD_NAME}.json"
+}

@@ -1,0 +1,19 @@
+{
+    "type" : "static-library",
+    "name" : "board",
+    "details" : {
+	"public" : {
+	    "include-dirs" :  [
+		'include'
+	    ]
+	}
+	"src" : {
+	    "GLOB" : [
+		"darwin/src/*.c",
+		"darwin/src/*.cpp",
+		"darwin/src/*.S",
+		]
+	}
+    }
+}
+

@@ -1,0 +1,10 @@
+{
+    "python.analysis.extraPaths": ["${workspaceFolder}/tools"],
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s", "./tools/py_modules/pmake",
+        "-p", "test_*.py"
+    ],
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestEnabled": true
+}

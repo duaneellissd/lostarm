@@ -1,4 +1,0 @@
-# This is my requirements, not a python one sorry
-
-doxygen
-graphviz (dot, for doxygen)
