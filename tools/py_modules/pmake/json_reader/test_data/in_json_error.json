@@ -1,0 +1,5 @@
+{
+    "Note0" : "This is an error test case for a json file with a syntax error",
+    "Note1" : "This file purposely is not a valid json file",
+    "Note2" : We do this by not quoting this text
+}

@@ -1,0 +1,10 @@
+{
+    "variables" : {
+        "type" : "dog",
+        "good" : "Walter is wonderful but lacks brains"
+    },
+    "var-check" : {
+        "type" : "dog",
+        "good" : "Walter is wonderful but lacks brains"
+    }
+}
