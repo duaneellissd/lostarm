@@ -1,10 +1,20 @@
 {
-    "python.analysis.extraPaths": ["${workspaceFolder}/tools"],
-    "python.testing.unittestArgs": [
-        "-v",
-        "-s", "./tools/py_modules/pmake",
-        "-p", "test_*.py"
+    "python.defaultInterpreterPath": "/Users/duane/lostarm/.venv/bin/python3",
+    "python.linting.pylintEnabled": true,
+    "python.linting.enabled": true,
+    "python.pythonPath": "/Users/duane/lostarm/.venv/bin/python3",
+    "cSpell.words": [
+        "APPNAME",
+        "CLSID",
+        "CMDLINE",
+        "coverity",
+        "dikt",
+        "isinclude",
+        "libcommon",
+        "venv"
     ],
-    "python.testing.pytestEnabled": false,
-    "python.testing.unittestEnabled": true
+    "python.analysis.extraPaths": [
+        "/Users/duane/lostarm/helper-scripts/python/modules"
+    ],
+    "python.analysis.typeCheckingMode": "basic"
 }

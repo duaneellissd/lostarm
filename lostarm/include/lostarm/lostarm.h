@@ -18,7 +18,7 @@
 #include <lostarm/wrapped/_stdbool.h>
 #include <lostarm/wrapped/_inttypes.h>
 
-#include <lostarm/core_port/cpu_port.h>
+#include <lostarm/port/cpu.h>
 #include <lostarm/unittest.h>
 
 /* this is generated from source code ... */

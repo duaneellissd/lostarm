@@ -1,0 +1,8 @@
+{
+    "TYPE": "lib",
+    "src_dirs" : [ "src" ],
+    "cmdline_inc_dirs" : [ "include" ],
+    "linker_script" : "none"
+    "json_include" : "../libhost_generic/libhost_generic.json"
+    
+}

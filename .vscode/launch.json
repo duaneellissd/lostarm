@@ -1,3 +1,18 @@
 {
-    "justMyCode": false
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "LOSTARM: Python",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "python": "/Users/duane/lostarm/.venv/bin/python3",
+            "justMyCode": false,
+            "env": {
+                "PYTHONPATH": "/Users/duane/lostarm/helper-scripts/python/modules",
+                "LOSTARM_PYTHON3_EXE": "/Users/duane/lostarm/.venv/bin/python3"
+            }
+        }
+    ]
 }

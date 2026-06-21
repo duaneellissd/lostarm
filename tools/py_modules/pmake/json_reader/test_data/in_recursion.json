@@ -1,4 +1,0 @@
-{
-    "comment" : "Yep, we just recurse until we die",
-    "include" : "in_recursion.json"
-}

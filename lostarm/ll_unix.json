@@ -1,0 +1,14 @@
+{
+    "TYPE" : "static-lib",
+    "LIB_NAME" : "lostarm_posix",
+    
+    "CMDLINE_INC_DIRS" : [
+	"include"
+    ],
+
+    "SRC_DIRS" : [
+	"ll_driver/unix"
+    ]
+}
+
+	

@@ -1,0 +1,14 @@
+{
+    "TYPE" : "static-lib",
+    "LIB_NAME" : "lostarm_common",
+    
+    "CMDLINE_INC_DIRS" : [
+	"include"
+    ],
+
+    "SRC_DIRS" : [
+	"src"
+    ]
+}
+
+	

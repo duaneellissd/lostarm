@@ -6,7 +6,7 @@
 #include "lostarm/debug/debug_assert.h"
 
 #include "lostarm/debug/debug_structs.h"
-#include "lostarm/core_port/debug_io_port.h"
+#include "lostarm/port/debug_io.h"
 
 #include "lostarm/debug/debug_basic_io.h"
 #include "lostarm/debug/debug_numbers.h"

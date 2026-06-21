@@ -1,0 +1,29 @@
+{
+	"TYPE" : "multi-app",
+
+    "APPS" : [
+		"basic_io/testapp.json",
+		"basic_timer/testapp.json",
+		"ta_0010_debug_raw/testapp.json",
+		"ta_0020_timer_lw/testapp.json",
+		"ta_0030_debug_basic/testapp.json"
+    ],
+	"MULTI_APP_VARS" : [
+		{ 
+			"BOARDNAME" : [ 
+				"${platform.system()}", 
+				"nucelo-stm32f103" 
+			]
+		}
+	],
+
+    "COMMON" : {
+	    "INCLUDE_JSON" : [
+			"../lostarm/common.json",
+			"board/${BOARDNAME}.json"
+    	]
+	}
+
+}
+
+	

@@ -1,0 +1,8 @@
+{
+    "TYPE" : "app",
+    "APP_NAME" : "basic_timer",
+    
+    "SRC_DIRS" : [ "src" ]
+    "CMDLINE_INC_DIRS" : [ "include" ]
+}
+

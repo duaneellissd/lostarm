@@ -1,0 +1,6 @@
+json5
+crcmod
+pyexpect
+pyserial
+pyelftools
+
