@@ -1,2 +1,0 @@
-#git+https://github.com/json5/json5.git
-json5
