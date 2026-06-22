@@ -1,4 +1,5 @@
-# This helps setup a VENV for a MAC or LINUX 
+# This helps setup a VENV for a MAC or LINUX
+
 # And and helps with some other related debug things.
 # general usage is:
 #      "python3 /path/to/vs_code_venv_helper.py  PROJECTROOTDIR"
@@ -143,6 +144,8 @@ def create_lostarm_python_sh():
         with open( LOSTARM_PYTHON_SETTINGS_SH, "rt" ) as f:
             text = f.read()
     # if needed, add these
+    if 'PYCHARM_PYTHON_PATH' not in text:
+        text = text + "\nexport PYCHARM_PYTHON_PATH=%s\n" % PYTHON3_EXE
     if 'PYTHONPATH' not in text:
         text = text + "\nexport PYTHONPATH=%s\n" % PYTHONPATH
         modified = True

@@ -3,7 +3,7 @@ import os
 import sys
 __ALL__=['Jproject']
 
-from makemaker.keys import KEYS
+from jproject.keys import KEYS
 
 def _is_string_array( value : (str|list[str])) -> bool:
     """
@@ -36,7 +36,7 @@ class Jproject():
     path_like_KEYS = (
         KEYS.PROJ_ROOT_DIR,
         KEYS.ENV_VARS,
-        KEYS.MAKEFILE_VARS,
+        KEYS.MAKE_VARS,
         KEYS.LINKER_SCRIPT,
         KEYS.PRE_BUILD_SCRIPT,
         KEYS.POST_BUILD_SCRIPT
@@ -77,6 +77,9 @@ class Jproject():
         """This include sack supports the KEY.INCLUDE_JSON directive"""
         self._include_stack : list = []
         self._dumped_include_stack = False
+        self._vars = Variables()
+
+    def add_var( self, )
 
     def _dump_include_stack(self) -> None:
         """
