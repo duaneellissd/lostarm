@@ -11,9 +11,9 @@ import getpass
 from lostarm import verbose_print, fatal
 
 re_var = re.compile(r"^(?P<lhs>.*)[$][{](?P<var_name>[A-Za-z_][A-Za-z0-9_]*)[}](?P<rhs>.*)$")
-re_func = re.compile(r"^(?P<lhs>.*)[$][{](?P<func_name>[A-Za-z_][A-Za-z0-9_]*)(?P<params>[(].*[)])[}](?P<rhs>.*)$")
+re_func = re.compile(r"^(?P<lhs>.*)[$][{](?P<func_name>[A-Za-z_][A-Z.a-z0-9_]*)(?P<params>[(].*[)])[}](?P<rhs>.*)$")
 
-__all_functions : dict[str,"func_entry"]= {}
+all_functions : dict[str,"func_entry"]= {}
 class func_entry():
     def __init__( self, name : str, callable_thing : Callable, n_params : int  ):
         self.name = name
@@ -27,16 +27,18 @@ class func_entry():
                 fatal("%s() does not take parameters" % self.name )
             return self.callable_thing()
         if self.n_params == 1:
-            return self.callable_thing( params )
+            result = self.callable_thing( params )
+            return result
         args = params.split(',')
         if self.n_params != -1:
             if len(args) != self.n_params:
                 fatal("%s() requires %d parameters, got: %s" % (self.name, self.n_params, params) )
-        return self.callable_thing( *args )
+        result = self.callable_thing( *args )
+        return result
 
 def _register_function( name : str, function : Callable, param_count : int ):
-    global __all_functions
-    __all_functions[ name ] = func_entry( name, function, param_count)
+    global all_functions
+    all_functions[ name ] = func_entry( name, function, param_count)
 
 _register_function( "os.getcwd", os.getcwd, 0 )
 _register_function( "os.path.abspath", os.path.abspath, 1 )
@@ -92,13 +94,6 @@ _register_function( "socket.gethostname", socket.gethostname,0 )
 
 
 
-def _function_call( m : re.Match ) -> str:
-    name = m['func_name']
-    params = m['params']
-    entry = __all_functions.get( name, None )
-    if entry is None:
-        fatal("%s(%s) does not exist" % (name,params))
-    return entry.call_this( params )
 
 
 class Variables():
@@ -145,7 +140,19 @@ class Variables():
             self._dump_history()
             fatal("undefined: %s" % name )
         return value
-    
+
+    def _function_call(self, m: re.Match) -> str | None:
+        _ = self
+        name = m['func_name']
+        params = m['params']
+        params = params[1:-1]
+        entry = all_functions.get(name, None)
+        print("name: %s, params: %s" % (name, params))
+        if entry is None:
+            fatal("%s(%s) does not exist" % (name, params))
+        result = entry.call_this(params)
+        return result
+
     def resolve( self, text : str ) -> str:
         """
         Replace all ${VARIABLES} in the string.
@@ -154,12 +161,14 @@ class Variables():
 
         self._r_history = []
         while True:
+            print("text: %s" % text )
             self._r_history.append( text )
             if len(self._r_history) > 50:
                 self._dump_history()
                 fatal("string does not resolve after 50 rounds")
             m = re_var.match( text )
             if m:
+                print("Var Match: %s" % text)
                 lhs = m['lhs']
                 name = m['var_name']
                 rhs = m['rhs']
@@ -170,10 +179,17 @@ class Variables():
             # Ok no simple vars try function calls.
             m = re_func.match(text)
             # If this is Non
-            if m is None:
+            if m is not None:
+                print("func match: %s" % text)
                 # Success!
-                self._r_history = [] # release memory.
-                return text
-            value = _function_call( m )
+                print("CALL")
+                value = self._function_call( m )
+                lhs = m['lhs']
+                rhs = m['rhs']
+                text = lhs + value + rhs
+                print("TEXT is now: %s" % text)
+                continue
+            self._r_history = []  # release memory.
+            return text
 
 

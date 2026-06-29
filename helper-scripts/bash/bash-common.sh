@@ -1,4 +1,7 @@
 #! /bin/bash
+
+# Die on simple errors.
+set -e
 #========================================
 # This is a set of functions to simplify
 # Writing bash scripts.
@@ -7,91 +10,110 @@
 #  Widely used, Exported things are SNAKE_CASE_CAPS
 #  Private things are snake_lower_strings.
 #========================================
-set -x
 
-# do not repeat including this.
-if [[ -z "${BASH_HELPERS_DONE}" ]]
+tmp=$(realpath ${BASH_SOURCE[0]})
+tmp=$(dirname "$tmp")
+
+# Bash type "include guard"
+if [ "${BASH_HELPERS_SH}" = "" ]
 then
-    export BASH_HELPERS_DONE="678e5e019a79526d0fcca5e29f6e5f78"
+    export BASH_HELPERS_SH="$tmp"
 else
-    return
-fi
-
-
-# We require the PROJ_VARS_FILE
-if [ x"${PROJ_ROOT_DIR}" == x"" ]
-then
-    echo "PROJ_ROOT_DIR is not set, it is required"
-    exit 1
-fi
-
-#========================================
-# print where this function was called from.
-# this uses the "caller" function to reach up into the callstack
-# Thus the first parameter is the override for how far up we go.
-#========================================
-function called_from () {
-    echo "" >> /dev/null
-#    depth=$1
-#    caller 1
-#    caller 2 | read -r abcLN abcF1 abcF2
-#    set 
-#    echo "LINENO=${LN}"
-#    echo "FUNCNAME=${F1}"
-#    echo "FILENAME=${F2}"
-#    printf "%s:%d: (%s) " ${FILENAME} ${LINENO} ${FUNCNAME}
-}
-export -f called_from
-
-#========================================
-# Script is dead, print an error message and exit.
-#========================================
-function fatal_here() {
-    local local
-    local msg
-    depth=$1
-    msg="$2"
-    called_from $depth
-    printf "FATAL: %s\n" "${msg}"
-    exit 1
-}
-export -f fatal_here
-
-
-#========================================
-# print a message thats it. keep going.
-#========================================
-function message_here() {
-    local
-    depth=$1
-    msg="$2"
-    called_from $depth
-    printf "%s\n" "${msg}"
-}
-export -f message_here
-
-function must_be_defined( ) {
-    VARNAME="$1"
-
-    value="${!VARNAME}"
-    if [ x"${value}" == x"" ]
+    if [ "$tmp" == "${BASH_HELPERS_SH}" ]
     then
-	fatal_here 1 "${VARNAME} is not defined it is required"
+        echo "BashHelper already included"
+        return
+    else
+        printf "This seems wrong?\n"
+        printf " THIS FILE: %s\n" "$tmp"
+        printf "OTHER FILE: %s\n" "${BASH_HELPERS_SH}"
+        exit 1
     fi
-    message_here 2 "Info: ${VARNAME}=${value}\n"
+fi
+export BASH_HELPERS_SH="$tmp"
+
+# shellcheck disable=SC2317
+function caller_show()
+{
+  local depth
+  local lineno
+  local func_name
+  local filename
+  depth="$1"
+  msg="$2"
+  #caller 1
+  #caller 2
+  #caller 3
+  lineno=$(caller "$depth" | cut -d' ' -f 1)
+  func_name=$(caller "$depth" | cut -d' ' -f 2)
+  filename=$(caller "$depth" | cut -d' ' -f 3)
+  if [ "$VERBOSE" -lt 1 ]
+  then
+     filename=`basename "$filename"`
+  fi
+     
+
+  #echo "LN=${lineno} FUNC=${func_name} FN=${filename}"
+
+  # shellcheck disable=SC2317
+  printf "%s:%d: %s: %s\n" "${filename}" "${lineno}" "${func_name}" "${msg}"
 }
-export -f must_be_defined
 
-function provide_default() {
-    VARNAME=$1
-    VALUE="$2"
-    old_value="${!VARNAME}"
+function caller_fatal()
+{
+    caller_show "$1" "FATAL: $2"
+    exit 1
+}
 
-    if [ x"${old_value}" == x"" ]
+function caller_info()
+{
+    caller_show "$1" "INFO: $2"
+}
+
+# shellcheck disable=SC2317
+function must_be_defined()
+{
+    local variable_name
+    variable_name="$1"
+    local value
+    value="${!variable_name}"
+    if [ "${value}" == "" ]
     then
-	export VARNAME="${VALUE}"
+        msg=$(printf "Variable: %s is not defined it is required\n" "${variable_name}")
+        caller_fatal 2 "$msg"
+    else
+        msg=$(printf "Variable: %s=%s" "${variable_name}" "${value}")
+        caller_info 2 "$msg"
     fi
-    message_here 1 "Info: ${VARNAME}=${!VARNAME}"
 }
-export -f provide_default
 
+# shellcheck disable=SC2317
+function provide_default()
+{
+    local variable_name
+    variable_name="$1"
+    local value
+    value="$2"
+    local old_value
+    old_value="${!variable_name}"
+    if [ "${old_value}" == "" ]
+    then
+      declare "${variable_name}=${value}"
+      caller_show 1 "provide_default ${variable_name}=${value}"
+    else
+      old_value="${value}"
+      caller_show 1 "already-set ${variable_name}=${value}"
+    fi
+    # shellcheck disable=SC2163
+    export "${variable_name}"
+}
+
+function show_var()
+{
+    NAME="$1"
+    VALUE="${!NAME}"
+
+    caller_show 1 "${NAME}=${VALUE}"
+}
+
+show_var BASH_HELPERS_SH

@@ -3,7 +3,8 @@ import os
 import sys
 __ALL__=['Jproject']
 
-from jproject.keys import KEYS
+from jproject.keys import *
+from variables import Variables
 
 def _is_string_array( value : (str|list[str])) -> bool:
     """
@@ -72,14 +73,15 @@ class Jproject():
         self._cur_filename : str = ""
         """ The line number of/in the current JSON file we are parsing """
         self._cur_lineno : int = 1
-        # Sadly the standard lib json does not provide line numbers
+        # Sadly the standard lib JSON does not provide line numbers
         # So we just use a single line number 1 for error locations.
         """This include sack supports the KEY.INCLUDE_JSON directive"""
         self._include_stack : list = []
         self._dumped_include_stack = False
         self._vars = Variables()
 
-    def add_var( self, )
+    def add_var( self, name, value):
+        self._vars.add_variable( name, value )
 
     def _dump_include_stack(self) -> None:
         """
@@ -132,8 +134,8 @@ class Jproject():
         """
         handles push/pop for the INCLUDE_JSON statement
         """
-        self.include_stack.append( (self._cur_filename, self._cur_lineno) )
-        if len( self.include_stack ) > 50:
+        self._include_stack.append( (self._cur_filename, self._cur_lineno) )
+        if len( self._include_stack ) > 50:
             # this just an arbitrary reasonable limit
             self.fatal_here("Include stack overflow")
         self._cur_filename = new_filename
@@ -142,7 +144,7 @@ class Jproject():
         """
         Remove an entry from the include stack
         """
-        (self._cur_filename, self._cur_lineno) = self.include_stack.pop()
+        (self._cur_filename, self._cur_lineno) = self._include_stack.pop()
 
     def relative_to_cur_json(self, filename : str ) -> str:
         """
@@ -172,7 +174,7 @@ class Jproject():
         The result is self._jproject holds the project.
         """
         self._jproject = dict()
-        self.include_stack = []
+        self._include_stack = []
         self._merge_json_file( filename, KEYS.STRS_app_or_libs );
 
     def _merge_json_file( self, filename : str, types_allowed : (str|list|tuple) ) -> None:
@@ -183,14 +185,14 @@ class Jproject():
         txt = ''
         self._include_push(filename)
         with open( self._cur_filename, "rt" ) as f:
-            txt = f.read();
+            txt = f.read()
         # load via stdlib parser.
         try:
             data = json.loads( txt )
         except json.JSONDecodeError as e:
             self.not_fatal("%s:%d: %d json parse error: %s" % (filename, e.lineno, e.colno, e.msg) )
             self.fatal("sorry")
-        actual_type = data.get( KEYS.PROJ_TYPE, None)
+        actual_type = data.get( KEYS.TYPE, None)
         if actual_type is None:
             self.fatal_here("Missing key: %s" % KEYS.PROJ_TYPE )
         if actual_type not in types_allowed:
@@ -212,7 +214,7 @@ class Jproject():
         """
         Handle each special case of merging an item.
         """
-        if keyname == KEYS.PROJ_TYPE:
+        if keyname == KEYS.TYPE:
             if len(self._include_stack) == 1:
                 # We are in the top most [root] JSON file
                 self._merge_key_string( keyname, value )
@@ -343,7 +345,7 @@ class Jproject():
     def _validate_SRC_DIRS( self, keyname : str,value : (dict|str) ) -> None:        
         self.validate_DICT_DIR( keyname, value,KEYS.SRC_DIRS, self.default_SRC_DIRS )
 
-    def _handle_generic_DIR( self, keyname, value ) -> None:
+    def _merge_generic_DIR( self, keyname, value ) -> None:
         """
         Attempt to handle the SRC_DIRS or CMDLINE_INC_DIRS in a generic way.
         """
@@ -366,7 +368,7 @@ class Jproject():
         # Append this one.
         self._jproject[ keyname ].append( result )
         
-    def _handle_inc_src( self, keyname, value, validator ):
+    def _merge_generic_DIRS( self, keyname, value, validator ):
         """
         Generically handle a CMDLINE_INC_DIR or SRC_DIR
         """        
@@ -383,7 +385,7 @@ class Jproject():
                 continue
             self.fatal_here("Entry is not a str or dict, actual=%s" % str(thing) )
 
-    def _handle_CMDLINE_INC_DIRS( self, keyname, value ):
+    def _merge_CMDLINE_INC_DIRS( self, keyname, value ):
         """
         This represents what you would know as series of: -I path -I path 
         on the compiler command line. Example:
@@ -397,7 +399,7 @@ class Jproject():
         The dict must be in the form: self.default_
 
         """
-        self._handle_inc_src( keyname, value, self._validate_CMDLINE_INC_DIRS )
+        self._merge_generic_DIRS( keyname, value, self._validate_CMDLINE_INC_DIRS )
 
         
 
@@ -405,7 +407,7 @@ class Jproject():
         """
          For an example: see: self.default_src_dict
         """
-        self._handle_inc_src( keyname, value, self._validate_SRC_DIRS )
+        self._merge_generic_DIRS( keyname, value, self._validate_SRC_DIRS )
      
 
   

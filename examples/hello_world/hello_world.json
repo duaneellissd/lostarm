@@ -1,0 +1,9 @@
+{
+	"TYPE" : "app",
+
+	"SRC_DIRS" : "src",
+
+	"CMDLINE_INC_DIRS" : "include"
+
+}
+

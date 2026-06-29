@@ -106,3 +106,5 @@ __pycache__/
 # SCONS
 .sconsign.dblite
 
+.idea/
+.vscode/

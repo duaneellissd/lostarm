@@ -14,6 +14,12 @@ class VarTestCase( unittest.TestCase ):
         result = dut.resolve("${DOG}")
         self.assertEqual("WALTER",result)
         print("SUCCESS")
+
+    def test_two(self):
+        dut = self.create()
+        result = dut.resolve("There is a ${DOG} and ${CAT} here")
+        print("result: %s" % result)
+        self.assertEqual("There is a WALTER and GARFIELD here",result )
     
     def test_function( self ):
         dut = self.create()

@@ -4,7 +4,7 @@ for d in sys.path:
     print("Path: %s" % d )
 
 
-from makemaker.jproject import Jproject
+from jproject import Jproject
 
 jp = Jproject()
 fn = "testapps/testapps.json"

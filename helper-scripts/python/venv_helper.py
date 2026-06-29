@@ -1,9 +1,9 @@
-# This helps setup a VENV for a MAC or LINUX
+# This helps set up a VENV for a MAC or LINUX or Windows.
 
-# And and helps with some other related debug things.
+# And helps with some other related debug things.
 # general usage is:
-#      "python3 /path/to/vs_code_venv_helper.py  PROJECTROOTDIR"
-# AKA: "python3 /path/to/vs_code_venv_helper.py  ."
+#      python3 /path/to/vs_code_venv_helper.py  "${PATH_TO_VENV_DIR}"
+# AKA: python3 /path/to/vs_code_venv_helper.py  .
 import sys
 import os
 import subprocess
@@ -11,287 +11,50 @@ import platform
 import shutil
 import json
 
-VERBOSE = 0
-PYTHON_PATH=""
-PYTHON3_EXE=shutil.which('python3')
-PIP_EXE= []
-PROJ_ROOT_DIR=""
-VENV_DIR=""
-VSCODE_DIR=""
-VSCODE_LAUNCH_JSON=""
-MODULES_DIR=""
-LOSTARM_PYTHON_SETTINGS_SH=""
-ACTIVATE_SH=""
 
-def verbose_print( level : int, msg :str ) -> None:
-    if (level <= VERBOSE ):
-        print(msg)
+def _find_and_replace(filename: str, findme: str, value: str) -> None:
+    """
+    given a filename (typically a shell or bat or ps1 script)
+    find a line stat starts with "findme", ie: "export FOO="
+    And replace it with: "findme=VALUE", ie: export FOO=somevalue
 
-def startswith( parent, child ):
-    if child.startswith( parent ):
-        return
-    print("WRONG: parent: %s" % parent )
-    print("        child: %s" % child )
-    sys.exit(1)
-        
-def set_proj_root_dir( path ):
-    global PROJ_ROOT_DIR
-    PROJ_ROOT_DIR=os.path.abspath(path)
-    global VENV_DIR
-    VENV_DIR=os.path.join( PROJ_ROOT_DIR, '.venv')
-    startswith( PROJ_ROOT_DIR, VENV_DIR )
-    global VSCODE_DIR
-    VSCODE_DIR=os.path.join( PROJ_ROOT_DIR, '.vscode' )
-    startswith( PROJ_ROOT_DIR,VSCODE_DIR)
-    global VSCODE_LAUNCH_JSON
-    VSCODE_LAUNCH_JSON=os.path.join(VSCODE_DIR,"launch.json")
-    startswith( PROJ_ROOT_DIR, VSCODE_LAUNCH_JSON )
-    
-    global VSCODE_SETTINGS_JSON
-    VSCODE_SETTINGS_JSON=os.path.join(VSCODE_DIR,"settings.json")
-    global MODULES_DIR
-    this_dir=os.path.dirname( os.path.abspath( __file__ ) )
-    startswith( PROJ_ROOT_DIR, this_dir )
-    MODULES_DIR=os.path.join(this_dir,'modules')
-    global LOSTARM_PYTHON_SETTINGS_SH
-    LOSTARM_PYTHON_SETTINGS_SH=os.path.join( VENV_DIR, "lostarm_python.sh" )
-    startswith( PROJ_ROOT_DIR, LOSTARM_PYTHON_SETTINGS_SH )
-    global ACTIVATE_SH
-    ACTIVATE_SH=os.path.join( VENV_DIR, "bin", 'activate')
-    startswith( PROJ_ROOT_DIR, ACTIVATE_SH )
-    
-def host_type() -> str:
-    
-    tmp = platform.system()
-    verbose_print(1,"host_type: %s" % tmp )
-    return tmp
-
-def execute( cmdline : list ):
-
-    verbose_print(0,"execute: %s" % " ".join(cmdline))
-    result = subprocess.run( cmdline,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT,
-                             text=True )
-    verbose_print(0, result.stdout )
-    if result.returncode != 0:
-        print("FAIL: ret code: %d" % result.returncode )
-        sys.exit(result.returncode)
-    verbose_print(1,result.stdout)
-
-def get_exes():
-    global PIP_EXE
-    global PYTHON3_EXE
-    PIP_EXE=None
-    PYTHON3_EXE=None
-    
-    t = os.path.join( VENV_DIR, "bin", "python3" )
-    if os.path.isfile( t ):
-        PYTHON3_EXE=t
-    else:
-        PYTHON3_EXE=shutil.which('python3')
-    PIP_EXE = [ PYTHON3_EXE, '-m', "pip" ]
-    
-    # We do not use pip in the venv dir
-    # We want to be more specific about the instance
-    if (PYTHON3_EXE is None) or (PIP_EXE is None):
-        print("cannot find python3 or pip")
-        sys.exit(1)
-    verbose_print(1,"PYTHON3_EXE=%s" % PYTHON3_EXE)
-    verbose_print(1,"PIP_EXE=%s" % PIP_EXE)
-        
-def run_requirements() -> None:
-    fn = os.path.join(PROJ_ROOT_DIR,"requirements-%s.txt" % host_type() )
-    if not os.path.isfile( fn ):
-        print("warning: missing %s" % fn)
-        return
-    
-    get_exes( )
-    tmp = PIP_EXE[:]
-    tmp.extend(["install", "-r", fn])
-    print("tmp=%s" % tmp)
-    execute( tmp )
-
-def create_venv( ):
-    execute( [PYTHON3_EXE, "-m", "venv", VENV_DIR] )
-    # these have changed update them
-    get_exes()
-
-def get_pythonpath():
-    global PYTHONPATH
-    # default
-    new_path=[MODULES_DIR]
-    # Is there an existing one?
-    if "PYTHONPATH" in os.environ:
-        # get the old one and split to an array
-        old_path = os.environ["PYTHONPATH"].split(':')
-        # Do not add duplicates
-        if MODULES_DIR not in old_path:
-            # Ok we need to add this dir
-            new_path = [ MODULES_DIR, *old_path ]
-    sep=':' # MAC & LINUX
-    if host_type() == 'Windows':
-        sep = ';' # why is this so hard!
-    PYTHONPATH=sep.join(new_path)
-    verbose_print(1,"PYTHONPATH=%s" % PYTHONPATH )
-
-def create_lostarm_python_sh():
-    get_exes()
-    get_pythonpath()
-    text = ""
-    modified = False
-    if os.path.isfile(LOSTARM_PYTHON_SETTINGS_SH):
-        with open( LOSTARM_PYTHON_SETTINGS_SH, "rt" ) as f:
-            text = f.read()
-    # if needed, add these
-    if 'PYCHARM_PYTHON_PATH' not in text:
-        text = text + "\nexport PYCHARM_PYTHON_PATH=%s\n" % PYTHON3_EXE
-    if 'PYTHONPATH' not in text:
-        text = text + "\nexport PYTHONPATH=%s\n" % PYTHONPATH
-        modified = True
-    if 'LOSTARM_PYTHON3_EXE' not in text:
-        text = text + "\nexport LOSTARM_PYTHON3_EXE=%s\n" % PYTHON3_EXE
-        modified = True
-    # future: we add more here?
-    if modified:
-        with open(LOSTARM_PYTHON_SETTINGS_SH, "wt" ) as f:
-            f.write( text )
-        verbose_print(1,"Updated: %s" % LOSTARM_PYTHON_SETTINGS_SH)
-        verbose_print(1, text )
-        
-        
-def update_activate():
-    txt = ""
-    modified = False
-    verbose_print(1,"Update: %s" % ACTIVATE_SH)
-    if os.path.isfile( ACTIVATE_SH ):
-        with open( ACTIVATE_SH, "rt" ) as f:
-            txt = f.read()
-    if LOSTARM_PYTHON_SETTINGS_SH not in txt:
-        txt = txt + "\nsource %s\n" % LOSTARM_PYTHON_SETTINGS_SH
-        modified = True
-    if modified:
-        with open( ACTIVATE_SH, "wt" ) as f:
-            f.write( txt )
-        verbose_print(1,"Updated: %s" % ACTIVATE_SH )
-        verbose_print(1, txt )
-
-def update_vscode_launch():
-    get_exes()
-    fn_launch = VSCODE_LAUNCH_JSON
-    mod = False
-    if os.path.isfile( fn_launch ):
-        txt = ""
-        with open( fn_launch, "rt" ) as f:
-            txt = f.read()
-        data = json.loads( txt )
-    else:
-        mod = True
-        data = {}
-    ok=False
-    if 'version' in data:
-        tmp=data['version']
-        if tmp == "0.2.0":
-            ok=True
-    else:
-        data['version']="0.2.0"
-        ok=True
-    if not ok:
-        verbose_print(0,"%s: version is not 0.2.0" % fn_launch )
-        sys.exit(1)
-    la_cfg = dict()
-    our_name="LOSTARM: Python"
-    la_cfg['name'] = our_name
-    la_cfg['type'] = "debugpy"
-    la_cfg['request']="launch"
-    la_cfg['program']="${file}"
-    la_cfg['console']="integratedTerminal"
-    la_cfg['python'] = PYTHON3_EXE
-    # This lets us debug things in the python/modules directory.
-    la_cfg['justMyCode']=False
-    # No we do not do this
-    #  la_cfg['cwd']=os.path.dirname( VSCODE_DIR )
-    la_cfg['env'] = dict()
-    la_cfg['env']['PYTHONPATH'] = PYTHONPATH
-    la_cfg['env']['LOSTARM_PYTHON3_EXE']=PYTHON3_EXE
-    
-    # Make sure we have something to iterate over
-    if 'configurations' not in data:
-        data['configurations'] = []
-        mod = True
-    # See if it already exists.
+    If the filename does not exist, create it.
+    """
+    result: list[str] = []
+    in_lines = []
+    if os.path.isfile(filename):
+        with open(filename, "r") as f:
+            in_lines: list[str] = f.readlines()
     found = False
-    for tmp in data['configurations']:
-        if tmp['name'] == la_cfg['name']:
-            # duplicate
+    for tmp in in_lines:
+        if tmp.startswith(findme):
+            result.append("%s%s" % (findme, value))
             found = True
-            break
-        
-    if found:
-        new_configs = data['configurations']
-    else:
-        mod = True
-        configs=[la_cfg]
-        # put ours in front
-        configs.extend( data['configurations'] )
-    
-    if mod:
-        data['configurations'] = configs
-        verbose_print(1,"Update: %s" % fn_launch)
-        with open( fn_launch, "wt" ) as f:
-            f.write( json.dumps( data, indent=4 ) )
+        else:
+            result.append(tmp)
+    if not found:
+        result.append("%s%s" % (findme, value))
+    with open(filename, "wt") as f:
+        f.write("\n".join(result))
+        f.write("\n")
 
-def add_spelling_words( mod : bool, data : dict) -> tuple[bool,dict]:
-    """
-    We have our list of 'spelling words' in the python directory
-    we wish to seed these into vscode cSpell.words
-    """
-    # get existing word list that vscode knows about
-    key='cSpell.words'
-    if key not in data:
-        data[key]=[]
-        mod = True
-    existing = data.get(key)
-    assert( isinstance( existing,list) )
-    # Get our list
-    fn=os.path.join(os.path.dirname(os.path.abspath(__file__)),"spelling.txt")
-    our_words = []
-    with open(fn,"rt") as f:
-        our_words = f.readlines()
-    # if our word is not in the existing list, add our word
-    for this_word in our_words:
-        # remove leading/trailing whitespace
-        this_word = this_word.strip()
-        # Ignore blank lines
-        if len(this_word)==0:
-            continue
-        # ignore comments
-        if this_word[0] == '#':
-            continue
-        # ok it is a word check it.
-        if this_word not in existing:
-            mod = True
-            existing.append(this_word)
-    if mod:
-        data[key] = existing
-    return mod, data
-
-def update_dict( mod : bool, data : dict, key : str, val : (str|list)) -> tuple[bool,dict]:
+def _update_dict( modified : bool, data : dict, key : str, val : (str|list|bool)) -> tuple[bool,dict]:
     """
     If key is not in the data dict, add it
     if value does not match, change it
     Return (modified, data )
     """
     if key not in data:
-        mod = True
+        modified = True
         data[key] = val
     elif isinstance( val, str ):
         if data[key] != val:
-            mod = True
+            modified = True
             data[key]=val
     elif isinstance( val, list ):
-        mod = True
+        modified = True
         existing = data[key]
+        # If it is a string, make it a list.
         if isinstance( existing, str ):
             existing = [ existing ]
         assert( isinstance( existing, list ))
@@ -301,78 +64,607 @@ def update_dict( mod : bool, data : dict, key : str, val : (str|list)) -> tuple[
         for this_entry in existing:
             combined[this_entry] = 1
         data[key] = list( combined.keys() )
-    return (mod,data)
+    return modified,data
 
-def add_python_to_settings():
+def which_exe( name : str ) -> str:
+    """
+    This is a wrapper/replacement for "shutil.which()"
+    For some reason PyCharm thinks it is deprecated
+    It seems pycharm is wrong
+    """
+    return shutil.which( name )
+
+
+
+class VenvHelper(object):
+    def __init__(self, args : list[str] ):
+        self.args = args
+        """
+        what level of log/debug are we creating, see self.verbose_print()
+        The larger the number the more noise that is created.
+        """
+        self.VERBOSE = 0
+        """
+        What is the name of the VENV directory we are creating?
+        (This is a command line parameter to this utility script)
+        """
+        self.VENV_DIR : (str|None) = None
+
+        self.parse_args(args)
+        """
+        Where is this script located?
+        """
+        tmp=os.path.dirname( os.path.abspath(__file__) )
+        """this is located where this script is located"""
+        self.PYTHON_HELPER_DIR=tmp
+        """
+        Where is PYCHARM installed?
+        """
+        tmp = os.environ.get("PROJ_PYCHARM_EXE", None)
+        if tmp is None:
+            tmp = which_exe( "pycharm" )
+        self.PROJ_PYCHARM_EXE = tmp
+        """
+        Where is VSCODE installed?
+        """
+        tmp = os.environ.get("PROJ_VSCODE_EXE", None)
+        if tmp is None:
+            tmp = which_exe("code")
+        self.PROJ_VSCODE_EXE = tmp
+
+        tmp = os.path.join( self.PYTHON_HELPER_DIR, "spelling.json" )
+        """ 
+        Where do we keep our spelling dictionary?
+        """
+        self.SPELLING_WORDS_JSON_FN = tmp
+        """
+        Once read, our spelling word are a list here.
+        """
+        self.SPELLING_WORDS = []
+        # go read our spelling words
+        self.spelling_read_our_list()
+
+        """
+        Where does Python get its modules from?
+        Did user set this up ahead of time? 
+        Then we should honor that list of places
+        """
+        self.PYTHONPATH=os.environ.get("PYTHONPATH",None)
+
+        """
+        I like to use PYCHARM, and PYCHARM does not always
+        find/use the instance of Python.exe in my VENV.
+        If this variable exists, PYCHARM will use that variable to find python.
+        See if it exists.
+        """
+        self.PYCHARM_PYTHONPATH=os.environ.get("PYCHARM_PYTHONPATH",None)
+
+        """
+        Sometimes, a system has multiple versions python installed.
+        and we sometimes need to force a specific PYTHON_EXE file.
+        SO - we assume/require you have set this variable
+        For sort of same reasons as PYCHARM provides this escape hatch.
+        """
+        self.PROJ_PYTHON3_EXE: str | None = os.environ.get("PROJ_PYTHON3_EXE",None)
+        if self.PROJ_PYTHON3_EXE is None:
+            print("ERROR: Missing ENV Variable: PROJ_PYTHON3_EXE it is strongly suggested")
+            tmp = which_exe( "python3" )
+            if tmp is None:
+                print("ERROR: Cannot find 'python3' in the path")
+                tmp = sys.executable
+            if tmp is None:
+                print("FATAL: Tried: 'python3' and that failed too")
+                sys.exit(1)
+            # verify version of Python
+            self.PROJ_PYTHON3_EXE = tmp
+        elif not os.access( self.PROJ_PYTHON3_EXE, os.X_OK ):
+            print("OS Env Variable: %s=%s" % ("PROJ_PYTHON3_EXE", self.PROJ_PYTHON3_EXE ) )
+            print("FATAL: Not an executable")
+            sys.exit(1)
+        self._verify_python_version()
+
+        """
+        Where is the root directory of the project.
+        this is specified as an Environment variable.
+        """
+        self.PROJ_ROOT_DIR = os.environ.get("PROJ_ROOT_DIR", None)
+        if self.PROJ_ROOT_DIR is None:
+            print("Missing ENV variable: PROJ_ROOT_DIR, it is required")
+            sys.exit(1)
+        if not os.path.isdir( self.PROJ_ROOT_DIR ):
+            print("%s: Not a directory" % self.PROJ_ROOT_DIR )
+            sys.exit(1)
+        """"
+        To help others who use VSCODE, we will attempt to set things up for them too.
+        We assume the .vscode directory is under the PROJ_ROOT_DIR
+        """
+        self.VSCODE_DIR = os.path.join(self.PROJ_ROOT_DIR, ".vscode")
+        # it must be a directory, otherwise choke & puke up an error message
+        # An assert is not appropriate her, but that is sort of what we are doing.
+        if os.path.exists( self.VSCODE_DIR ):
+            if not os.path.isdir( self.VSCODE_DIR ):
+                print("%s: Exists and it is not a directory" % self.VSCODE_DIR )
+                sys.exit(1)
+
+        """
+        Filename for vscode settings.json file
+        """
+        self.VSCODE_SETTINGS_JSON = os.path.join( self.VSCODE_DIR, "settings.json" )
+
+        """
+        VSCODE uses a "launch.json" file in the VSCODE_DIR
+        """
+        self.VSCODE_LAUNCH_JSON = os.path.join(self.VSCODE_DIR, "launch.json")
+
+        """
+        We will have our own modules that are not installed in the VENV.
+        They are located here, in this directory.
+        Maybe one day these will become "first class PIP modules on PyPpy
+        But today they are not. So we put/keep them here.
+        
+        We could "pip install" them but we will not.
+        
+        Why? We want to be able to edit/update/adjust change these.
+        It is simpler to not install them
+        Otherwise you edit/change the installed module
+        and never check in/commit your changes to these modules.
+        """
+        self.MODULES_DIR = os.path.join(self.PYTHON_HELPER_DIR, "modules")
+
+        """
+        We will create (or update) a "python_vars.sh" or "python_vars.bat"
+        with updated variable names. We keep/place this in the VENV dir.
+        We'll use that in many other places too.
+        """
+        ht = self.host_type()
+        """ Python vars for BASH case """
+        self.PYTHON_VARS_SH : (str|None) = None
+        """ Python vars for Windows batch file case """
+        self.PYTHON_VARS_BAT : (str|None) = None
+        """ Python vars for Windows Power Shell file case """
+        self.PYTHON_VARS_PS1 : (str|None) = None
+        if ht in ("Linux","Darwin"):
+            tmp = os.path.join( str(self.VENV_DIR), "bin", "python_vars.sh")
+            self.PYTHON_VARS_SH=tmp
+            tmp= os.path.join( str(self.VENV_DIR), "bin", "activate" )
+            self.ACTIVATE_SH= tmp
+        else:
+            tmp = os.path.join( str(self.VENV_DIR), "Scripts", "python_vars.bat")
+            self.PYTHON_VARS_BAT=tmp
+            tmp = os.path.join( str(self.VENV_DIR), "Scripts", "python_vars.ps1")
+            self.PYTHON_VARS_BAT=tmp
+            tmp= os.path.join( str(self.VENV_DIR), "Scripts", "activate.bat" )
+            self.ACTIVATE_BAT= tmp
+            tmp= os.path.join( str(self.VENV_DIR), "Scripts", "activate.ps1" )
+            self.ACTIVATE_PS1 = tmp
+
+
+    def usage(self):
+        """
+        Print command line usage
+        """
+        print('usage: %s VENV_DIRNAME' % self.args[0])
+        sys.exit(1)
+
+    def parse_args( self, args: list[str] ):
+        """ Skip the exe(script) name """
+        self.args = args[1:]
+        for tmp in self.args:
+            if tmp == '-v':
+                self.VERBOSE = self.VERBOSE + 1
+                continue
+            if self.VENV_DIR is None:
+                self.VENV_DIR = tmp
+                continue
+            print("Multiple VENV dirs specified only 1 is allowed")
+            self.usage()
+
+    def _verify_python_version(self):
+        """
+        Verify the version of python we found is at least 3.11
+        """
+        version_text = self._execute( [ self.PROJ_PYTHON3_EXE, "--version" ])
+        parts = version_text.split(' ')
+        if len(parts) != 2:
+            print("expected: Python: SEMVER, got: %s" % version_text )
+            sys.exit(1)
+        semver = parts[1].split('.')
+        if len(semver) != 3:
+            print("expected PYTHON SEMVER (3numbers), got: %s" % version_text )
+            sys.exit(1)
+        ver_num = int(semver[0]) * 100
+        ver_num = ver_num + int(semver[1])
+        if ver_num < 311:
+            print("We require python 3.11 or better, this is: %s" % version_text )
+            sys.exit(1)
+        # all is well.
+
+
+    def verbose_print( self, level : int, msg :str ) -> None:
+        """
+        Print the message if the level is >= verbose, or if level = 0.
+        """
+        if (level==0) or (level <= self.VERBOSE):
+            print(msg)
+
+    def host_type(self) -> str:
+        tmp = platform.system()
+        self.verbose_print(2,"host_type: %s" % tmp )
+        return tmp
+
+    def _execute( self, cmdline : list ) -> str:
+        """
+        Given a command line (array of args) execute these
+        capture the output, check for errors etc.
+        """
+        self.verbose_print(0,"execute: %s" % " ".join(cmdline))
+        result = subprocess.run( cmdline,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT,
+                             text=True )
+        self.verbose_print(0, result.stdout )
+        if result.returncode != 0:
+            self.verbose_print(0,"FAIL: ret code: %d" % result.returncode )
+            sys.exit(result.returncode)
+        self.verbose_print(1,result.stdout)
+        return result.stdout
+
+    def _run_requirements(self) -> None:
+        """
+        This effectively does: "pip -r requirements.txt" with a twist.
+        Each platform we might run on has a different set of requirements.
+
+        Example:
+            We may be installing a local directory full of python packages.
+            Those packages might be universal or a platform binary package.
+            So we use the name: 'requirements-PLATFORM.txt' instead.
+        """
+        fn_tmp = "requirements-%s.txt" % self.host_type()
+        fn = os.path.join(str(self.PROJ_ROOT_DIR), fn_tmp )
+        if not os.path.isfile( fn ):
+            print("warning: missing %s" % fn)
+            return
     
-    fn = VSCODE_SETTINGS_JSON
-    modified = False
-    # attempt to modify the existing.
-    if os.path.isfile( fn ):
-        txt = None
-        with open(fn,"rt") as f:
+        tmp = [ self.PROJ_PYTHON3_EXE, "-m", "pip", "install", "-r", fn ]
+        self._execute( tmp )
+
+    def create_venv( self ):
+        if os.path.isdir( str(self.VENV_DIR) ):
+            shutil.rmtree( str(self.VENV_DIR) )
+        self._execute( [self.PROJ_PYTHON3_EXE, "-m", "venv", self.VENV_DIR] )
+        # the "str()" here makes pylance STFU otherwise these are not valid.
+        self._update_python_exe()
+        self._update_pythonpath()
+        self._update_python_vars_XXX()
+        self._update_activate_script()
+
+    def _update_python_exe( self ):
+        """
+        Change our self.PROJ_PYTHON3_EXE to point at/into the VENV.
+        """
+        ht = self.host_type()
+        if ht in ("Linux", "Darwin"):
+            tmp = 'python3'
+        else:
+            tmp = 'python3.exe'
+        tmp = str(os.path.join( str(self.VENV_DIR), "bin", tmp ))
+        if not os.access( tmp, os.X_OK ):
+            print("%s: is not executable!" % tmp )
+            sys.exit(1)
+        self.PROJ_PYTHON3_EXE = tmp
+
+    def _update_pythonpath(self):
+        """
+        the user may or may not have set up a "PYTHONPATH"
+        here we modify it by inserting OUR modules dir
+        """
+        if self.PYTHONPATH is None:
+            self.PYTHONPATH = self.MODULES_DIR
+        else:
+            places : list = self.PYTHONPATH.split(os.pathsep)
+            if self.MODULES_DIR not in places:
+                places.insert(0, self.MODULES_DIR)
+            self.PYTHONPATH = os.pathsep.join(places)
+
+    def _update_python_vars_XXX(self):
+        """
+        We place a "python_vars" in the VENV dir.
+        This exists so that other things can get these vars
+        in a simpleway, they can just source the script.
+        Note that the script may already exist.
+        """
+        ht = self.host_type()
+
+        def do_update( fn : str, findme: str, attname ):
+            value = self.__getattribute__( attname )
+            _find_and_replace( fn, findme % attname, value )
+        if ht in ("Linux", "Darwin"):
+            this_fn = str(self.PYTHON_VARS_SH)
+            export_fmt = "export %s="
+            do_update( this_fn, export_fmt, "PROJ_PYTHON3_EXE" )
+            do_update( this_fn, export_fmt, "PYTHONPATH")
+            do_update( this_fn, export_fmt, "PYCHARM_PYTHONPATH" )
+            if self.PROJ_VSCODE_EXE is not None:
+                do_update( this_fn, export_fmt, "PROJ_VSCODE_EXE" )
+            if self.PROJ_PYCHARM_EXE is not None:
+                do_update( this_fn, export_fmt, "PROJ_PYCHARM_EXE" )
+
+        elif ht == "Windows":
+            # batch files use "set NAME=VALUE"
+            set_var="set %s="
+            this_fn = str(self.PYTHON_VARS_BAT)
+            do_update( this_fn, set_var, "PROJ_PYTHON3_EXE")
+            do_update( this_fn, set_var, "PYTHONPATH")
+            do_update( this_fn, set_var, "PYCHARM_PYTHONPATH" )
+            if self.PROJ_VSCODE_EXE is not None:
+                do_update( this_fn, set_var, "PROJ_VSCODE_EXE" )
+            if self.PROJ_PYCHARM_EXE is not None:
+                do_update( this_fn, set_var, "PROJ_PYCHARM_EXE" )
+
+            this_fn = str( self.PYTHON_VARS_PS1 )
+            # PS1 files use "$env:NAME=VALUE"
+            set_var = "$env:%s="
+            do_update( this_fn, set_var, "PROJ_PYTHON3_EXE" )
+            do_update( this_fn, set_var, "PYTHONPATH")
+            do_update( this_fn, set_var, "PYCHARM_PYTHONPATH" )
+            if self.PROJ_VSCODE_EXE is not None:
+                do_update( this_fn, set_var, "PROJ_VSCODE_EXE" )
+            if self.PROJ_PYCHARM_EXE is not None:
+                do_update( this_fn, set_var, "PROJ_PYCHARM_EXE" )
+
+    def _update_activate_script(self):
+        txt = ""
+        modified = False
+        ht = self.host_type()
+        found = False
+        if ht in ("Linux", "Darwin"):
+            with open( self.ACTIVATE_SH, "rt" ) as f:
+                lines = f.readlines()
+            result = []
+            for tmp in lines:
+                if tmp.startswith("source "):
+                    if os.path.basename(str(self.PYTHON_VARS_SH)) in tmp:
+                        found = True
+                        tmp = "source %s" % self.PYTHON_VARS_SH
+                result.append(tmp)
+            if not found:
+                result.append("source %s" % self.ACTIVATE_SH)
+            with open( self.ACTIVATE_SH, "wt" ) as f:
+                f.write( "\n".join(result) )
+                f.write("\n")
+        elif ht == "Windows":
+            with open( self.ACTIVATE_BAT, "rt" ) as f:
+                lines = f.readlines()
+            result = []
+            for tmp in lines:
+                if tmp.startswith( "call " ):
+                    if os.path.basename(str(self.PYTHON_VARS_BAT)) in tmp:
+                        found = True
+                        tmp = "call %s" % self.PYTHON_VARS_BAT
+                result.append( tmp )
+            if not found:
+                result.append( "call %s" % self.PYTHON_VARS_BAT )
+            with open( self.ACTIVATE_BAT, "wt" ) as f:
+                f.write( "\n".join(result) )
+            found = False
+            with open( self.ACTIVATE_PS1, "rt" ) as f:
+                lines = f.readlines()
+            for tmp in lines:
+                if tmp.startswith("."):
+                    if os.path.basename(str(self.PYTHON_VARS_PS1)) in tmp:
+                        found = True
+                        tmp = ". %s" % self.PYTHON_VARS_PS1
+                    result.append(tmp)
+            if not found:
+                result.append(". %s" % self.PYTHON_VARS_PS1 )
+            with open( str(self.PYTHON_VARS_PS1), "wt" ) as f:
+                f.write( "\n".join(result) )
+
+        # go read our spelling words
+    def spelling_read_our_list( self ):
+        if not os.path.isfile( self.SPELLING_WORDS_JSON_FN ):
+            self.SPELLING_WORDS = []
+            return
+        with open( self.SPELLING_WORDS_JSON_FN, "r" ) as f:
             txt = f.read()
-        verbose_print(1,"Reading: %s\n%s\n" % (fn,txt))
-        data = json.loads( txt )
-        assert( isinstance( data, dict ))
-    else:
-        # does not exist, so create
-        modified = True
-        data = dict()
-    assert( isinstance(data,dict))
-    key="python.defaultInterpreterPath"
-    (modified, data) = update_dict( modified, data, key, PYTHON3_EXE )
-    key = "python.linting.pylintEnabled"
-    (modified, data) = update_dict( modified, data,key, True )
-    key = 'python.linting.enabled'
-    (modified, data) = update_dict( modified,data,key,True)
-    key = 'python.pythonPath'
-    (modified, data) = update_dict( modified, data,key,PYTHON3_EXE)
-    key = "python.analysis.extraPaths"
-    (modified, data) = update_dict( modified, data, key, [ MODULES_DIR ])
-    key =   "python.analysis.typeCheckingMode"
-    (modified, data) = update_dict( modified, data, key, "strict" )
+        try:
+            data = json.loads( txt )
+        except json.JSONDecodeError as E:
+            print("%s:%d: Parse error loading spelling worlds %s" % (self.SPELLING_WORDS_JSON_FN, E.lineno, E.msg))
+            sys.exit(1)
+        if not isinstance( data, list ):
+            print("%s:1: Expected a json LIST, file must start with a [" % self.SPELLING_WORDS_JSON_FN)
+            sys.exit(1)
+        self.SPELLING_WORDS = data
 
-    (modified, data) = add_spelling_words( modified, data )
-    dname = os.path.dirname( fn )
-    if not os.path.isdir(dname):
-        modified = True
-        os.makedirs(dname)
-    if modified:
-        with open(fn,"wt" ) as f:
-            json.dump( data, f, indent=4 )
-        verbose_print(1,"Updated: %s" % fn )
+    def update_vscode(self):
+        self._update_vscode_launch()
+        # Spelling is done INSIDE the settings.json file
+        self._vscode_python_settings()
 
-def main( project_root_dir ):
-    verbose_print(1,"ROOT=%s" % project_root_dir)
-    set_proj_root_dir( project_root_dir )
-    get_exes()
-    if not os.path.isdir( VENV_DIR ):
-        create_venv()
-        run_requirements()
-    get_pythonpath()
-    create_lostarm_python_sh()
-    update_activate()
-    add_python_to_settings()
-    update_activate()
-    update_vscode_launch()
+    def update_scripts(self):
+        ht = self.host_type()
+        venv_dir = str(self.VENV_DIR)
+        if ht in ("Linux", "Darwin"):
+            if self.PROJ_VSCODE_EXE  is not None:
+                fn = os.path.join(venv_dir, "bin", "proj_vscode.sh")
+                with( open(fn, "wt") ) as f:
+                    f.write("#! /bin/bash\n")
+                    f.write("source %s\n" % self.PYTHON_VARS_SH )
+                    f.write("exec %s\n" % self.PROJ_VSCODE_EXE )
+            if self.PROJ_PYCHARM_EXE is not None:
+                fn = os.path.join( venv_dir, "bin", "proj_pycharm.sh" )
+                with( open(fn, "wt") ) as f:
+                    f.write("#! /bin/bash\n")
+                    f.write("source %s\n" % self.PYTHON_VARS_SH )
+                    f.write("exec %s\n" % self.PROJ_PYCHARM_EXE )
+        else:
+            if self.PROJ_VSCODE_EXE  is not None:
+                fn = os.path.join( venv_dir, "Scripts", "proj_vscode.bat" )
+                with ( open(fn, "wt") ) as f:
+                    f.write("@echo off\n")
+                    f.write("call %s\n" % self.PYTHON_VARS_BAT )
+                    f.write("%s\n" % self.PROJ_VSCODE_EXE)
+            if self.PROJ_PYCHARM_EXE is not None:
+                fn = os.path.join( venv_dir, "Scripts", "proj_pycharm.bat" )
+                with ( open(fn, "wt") ) as f:
+                    f.write("@echo off\n")
+                    f.write("call %s\n" % self.PYTHON_VARS_BAT )
+                    f.write("%s\n" % self.PROJ_PYCHARM_EXE)
 
-def usage():
-    print("usage: %s [-v] PROJECTROOTDIR\n" % sys.argv[0])
-    sys.exit(1)
+
+    def _update_vscode_launch(self):
+        """
+        We want to support using VSCODE to debug python stuff.
+        So we need to tell VSCODE about our VENV eetc.
+        """
+        fn_launch = self.VSCODE_LAUNCH_JSON
+        modified = False
+        if os.path.isfile( fn_launch ):
+            txt = ""
+            with open( fn_launch, "rt" ) as f:
+                txt = f.read()
+            try:
+                data = json.loads( txt )
+            except json.JSONDecodeError as E:
+                print("%s:%d: Parse error: %s" % (fn_launch, E.lineno, E.msg ))
+                sys.exit(1)
+        else:
+            modified = True
+            # Start with an empy dict if the file does not exist.
+            data = {}
+        ok=False
+        # basic version check.
+        if 'version' in data:
+            tmp=data['version']
+            if tmp == "0.2.0":
+                ok=True
+        else:
+            # Then assume it is v0.2.0
+            data['version']="0.2.0"
+            ok=True
+        if not ok:
+            self.verbose_print(0,"%s: version is not 0.2.0" % fn_launch )
+            sys.exit(1)
+        la_cfg = dict()
+        our_name="PROJ: Python"
+        la_cfg['name'] = our_name
+        la_cfg['type'] = "debugpy"
+        la_cfg['request']="launch"
+        la_cfg['program']="${file}"
+        la_cfg['console']="integratedTerminal"
+        # Tell VS Code where Python is located
+        la_cfg['python'] = self.PROJ_PYTHON3_EXE
+        # This lets us debug things in the python/modules directory.
+        la_cfg['justMyCode']=False
+        # No we do not do this
+        #  la_cfg['cwd']=os.path.dirname( VSCODE_DIR )
+        la_cfg['env'] = dict()
+        la_cfg['env']['PYTHONPATH'] = self.PYTHONPATH
+        la_cfg['env']['PROJ_PYTHON3_EXE']=self.PROJ_PYTHON3_EXE
     
+        # Make sure we have something to iterate over
+        if 'configurations' not in data:
+            data['configurations'] = []
+            modified = True
+        # See if it already exists.
+        found = -1
+        # this is an array, we put ours at the front
+        other_cfgs = [ la_cfg ]
+        # Then insert all others after ours
+        for tmp in data['configurations']:
+            if tmp['name'] == la_cfg['name']:
+                # Skip over our self.
+                continue
+            other_cfgs.append(tmp)
+        #
+        data['configurations'] = other_cfgs
+        # Save updated file
+        with open( self.VSCODE_LAUNCH_JSON, "wt" ) as f:
+            f.write( json.dumps( data, indent=4 ) )
+
+    def _vscode_spelling_words( self, modified : bool, data : dict) -> tuple[bool,dict]:
+        """
+        We have our list of 'spelling words' in self.SPELLING_WORDS
+        we wish to seed these into vscode cSpell.words
+        """
+        # get existing word list that vscode knows about
+        key='cSpell.words'
+        if key not in data:
+            data[key]=[]
+            modified = True
+        # This is a list
+        vscode_words = data[key]
+        # ours is a list
+        # combine the lists and remove duplicates via "set()"
+        self.SPELLING_WORDS = list(set( data[key] + self.SPELLING_WORDS ))
+        # Copy ours to the vscode list
+        data[key] = self.SPELLING_WORDS[:]
+        return modified, data
+
+
+    def _vscode_python_settings(self):
+        """
+        Add detail about python to the vscode settings file
+        """
+        fn = str(self.VSCODE_SETTINGS_JSON)
+        modified = False
+        # attempt to modify the existing.
+        if os.path.isfile( fn ):
+            txt = None
+            with open(fn,"rt") as f:
+                txt = f.read()
+            self.verbose_print(1,"Read: %s\n%s\n" % (fn,txt))
+            data = json.loads( txt )
+            assert( isinstance( data, dict ))
+        else:
+            # does not exist, so create
+            modified = True
+            data = dict()
+        assert( isinstance(data,dict))
+        key="python.defaultInterpreterPath"
+        (modified, data) = _update_dict( modified, data, key, str(self.PROJ_PYTHON3_EXE) )
+        key = "python.linting.pylintEnabled"
+        (modified, data) = _update_dict( modified, data,key, True )
+        key = 'python.linting.enabled'
+        (modified, data) = _update_dict( modified,data,key,True)
+        key = 'python.pythonPath'
+        (modified, data) = _update_dict( modified, data,key, str(self.PROJ_PYTHON3_EXE) )
+        key = "python.analysis.extraPaths"
+        (modified, data) = _update_dict( modified, data, key, [ self.MODULES_DIR ])
+        key =   "python.analysis.typeCheckingMode"
+        (modified, data) = _update_dict( modified, data, key, "strict" )
+
+        (modified, data) = self._vscode_spelling_words( modified, data )
+        dir_name = os.path.dirname( fn )
+        if not os.path.isdir(dir_name):
+            modified = True
+            os.makedirs(dir_name)
+        if modified:
+            with open(fn,"wt" ) as f:
+                json.dump( data, f, indent=4 )
+        self.verbose_print(1,"Updated: %s" % fn )
+
+
+    def main( self ):
+        self.create_venv()
+        self.update_vscode()
+        self.update_scripts()
+
+
+def main( args : list[str] ):
+    tool = VenvHelper( args )
+    tool.main()
+
+def case0( ):
+    main( sys.argv )
+
+def case1( _ : list[str] ):
+    tmp = os.path.abspath("../..")
+    os.environ[ "PROJ_PYTHON3_EXE"  ] = "/usr/local/bin/python3"
+    os.environ[ "PROJ_ROOT_DIR" ] = tmp
+    tmp = os.path.join(tmp,".venv")
+    main( [sys.argv[0], "-v", "-v", tmp] )
     
 if __name__ == '__main__':
-    dn=None
-    for tmp in sys.argv[1:]:
-        if tmp == '-v':
-            VERBOSE=VERBOSE +1
-            continue
-        if dn is not None:
-            print("Duplicate PROJECTROOTDIR")
-            usage()
-        dn = os.path.abspath(tmp)
-
-    if dn is None:
-        usage()
-    main( dn )
+    case1( sys.argv )
