@@ -27,6 +27,7 @@ def _find_and_replace(filename: str, findme: str, value: str) -> None:
             in_lines: list[str] = f.readlines()
     found = False
     for tmp in in_lines:
+        tmp = tmp.rstrip()
         if tmp.startswith(findme):
             result.append("%s%s" % (findme, value))
             found = True
@@ -88,7 +89,7 @@ class VenvHelper(object):
         What is the name of the VENV directory we are creating?
         (This is a command line parameter to this utility script)
         """
-        self.VENV_DIR : (str|None) = None
+        self.PROJ_VENV_DIR : (str|None) = None
 
         self.parse_args(args)
         """
@@ -224,18 +225,18 @@ class VenvHelper(object):
         """ Python vars for Windows Power Shell file case """
         self.PYTHON_VARS_PS1 : (str|None) = None
         if ht in ("Linux","Darwin"):
-            tmp = os.path.join( str(self.VENV_DIR), "bin", "python_vars.sh")
+            tmp = os.path.join( str(self.PROJ_VENV_DIR), "bin", "python_vars.sh")
             self.PYTHON_VARS_SH=tmp
-            tmp= os.path.join( str(self.VENV_DIR), "bin", "activate" )
+            tmp= os.path.join( str(self.PROJ_VENV_DIR), "bin", "activate" )
             self.ACTIVATE_SH= tmp
         else:
-            tmp = os.path.join( str(self.VENV_DIR), "Scripts", "python_vars.bat")
+            tmp = os.path.join( str(self.PROJ_VENV_DIR), "Scripts", "python_vars.bat")
             self.PYTHON_VARS_BAT=tmp
-            tmp = os.path.join( str(self.VENV_DIR), "Scripts", "python_vars.ps1")
+            tmp = os.path.join( str(self.PROJ_VENV_DIR), "Scripts", "python_vars.ps1")
             self.PYTHON_VARS_BAT=tmp
-            tmp= os.path.join( str(self.VENV_DIR), "Scripts", "activate.bat" )
+            tmp= os.path.join( str(self.PROJ_VENV_DIR), "Scripts", "activate.bat" )
             self.ACTIVATE_BAT= tmp
-            tmp= os.path.join( str(self.VENV_DIR), "Scripts", "activate.ps1" )
+            tmp= os.path.join( str(self.PROJ_VENV_DIR), "Scripts", "activate.ps1" )
             self.ACTIVATE_PS1 = tmp
 
 
@@ -253,8 +254,8 @@ class VenvHelper(object):
             if tmp == '-v':
                 self.VERBOSE = self.VERBOSE + 1
                 continue
-            if self.VENV_DIR is None:
-                self.VENV_DIR = tmp
+            if self.PROJ_VENV_DIR is None:
+                self.PROJ_VENV_DIR = tmp
                 continue
             print("Multiple VENV dirs specified only 1 is allowed")
             self.usage()
@@ -320,18 +321,22 @@ class VenvHelper(object):
             So we use the name: 'requirements-PLATFORM.txt' instead.
         """
         fn_tmp = "requirements-%s.txt" % self.host_type()
-        fn = os.path.join(str(self.PROJ_ROOT_DIR), fn_tmp )
+        dirname = os.path.join( str(self.PROJ_ROOT_DIR), "pip-modules" )
+        fn = os.path.join(dirname, fn_tmp )
         if not os.path.isfile( fn ):
             print("warning: missing %s" % fn)
             return
     
         tmp = [ self.PROJ_PYTHON3_EXE, "-m", "pip", "install", "-r", fn ]
+        here = os.getcwd()
+        os.chdir( dirname )
         self._execute( tmp )
+        os.chdir( here )
 
     def create_venv( self ):
-        if os.path.isdir( str(self.VENV_DIR) ):
-            shutil.rmtree( str(self.VENV_DIR) )
-        self._execute( [self.PROJ_PYTHON3_EXE, "-m", "venv", self.VENV_DIR] )
+        if os.path.isdir( str(self.PROJ_VENV_DIR) ):
+            shutil.rmtree( str(self.PROJ_VENV_DIR) )
+        self._execute( [self.PROJ_PYTHON3_EXE, "-m", "venv", self.PROJ_VENV_DIR] )
         # the "str()" here makes pylance STFU otherwise these are not valid.
         self._update_python_exe()
         self._update_pythonpath()
@@ -347,7 +352,7 @@ class VenvHelper(object):
             tmp = 'python3'
         else:
             tmp = 'python3.exe'
-        tmp = str(os.path.join( str(self.VENV_DIR), "bin", tmp ))
+        tmp = str(os.path.join( str(self.PROJ_VENV_DIR), "bin", tmp ))
         if not os.access( tmp, os.X_OK ):
             print("%s: is not executable!" % tmp )
             sys.exit(1)
@@ -422,13 +427,14 @@ class VenvHelper(object):
                 lines = f.readlines()
             result = []
             for tmp in lines:
+                tmp = tmp.rstrip()
                 if tmp.startswith("source "):
                     if os.path.basename(str(self.PYTHON_VARS_SH)) in tmp:
                         found = True
                         tmp = "source %s" % self.PYTHON_VARS_SH
                 result.append(tmp)
             if not found:
-                result.append("source %s" % self.ACTIVATE_SH)
+                result.append("source %s" % self.PYTHON_VARS_SH)
             with open( self.ACTIVATE_SH, "wt" ) as f:
                 f.write( "\n".join(result) )
                 f.write("\n")
@@ -437,6 +443,7 @@ class VenvHelper(object):
                 lines = f.readlines()
             result = []
             for tmp in lines:
+                tmp = tmp.rstrip()
                 if tmp.startswith( "call " ):
                     if os.path.basename(str(self.PYTHON_VARS_BAT)) in tmp:
                         found = True
@@ -446,10 +453,12 @@ class VenvHelper(object):
                 result.append( "call %s" % self.PYTHON_VARS_BAT )
             with open( self.ACTIVATE_BAT, "wt" ) as f:
                 f.write( "\n".join(result) )
+                f.write("\n")
             found = False
             with open( self.ACTIVATE_PS1, "rt" ) as f:
                 lines = f.readlines()
             for tmp in lines:
+                tmp = tmp.rstrip()
                 if tmp.startswith("."):
                     if os.path.basename(str(self.PYTHON_VARS_PS1)) in tmp:
                         found = True
@@ -459,13 +468,14 @@ class VenvHelper(object):
                 result.append(". %s" % self.PYTHON_VARS_PS1 )
             with open( str(self.PYTHON_VARS_PS1), "wt" ) as f:
                 f.write( "\n".join(result) )
+                f.write('\n')
 
         # go read our spelling words
     def spelling_read_our_list( self ):
         if not os.path.isfile( self.SPELLING_WORDS_JSON_FN ):
             self.SPELLING_WORDS = []
             return
-        with open( self.SPELLING_WORDS_JSON_FN, "r" ) as f:
+        with open( self.SPELLING_WORDS_JSON_FN, "rt" ) as f:
             txt = f.read()
         try:
             data = json.loads( txt )
@@ -484,7 +494,7 @@ class VenvHelper(object):
 
     def update_scripts(self):
         ht = self.host_type()
-        venv_dir = str(self.VENV_DIR)
+        venv_dir = str(self.PROJ_VENV_DIR)
         if ht in ("Linux", "Darwin"):
             if self.PROJ_VSCODE_EXE  is not None:
                 fn = os.path.join(venv_dir, "bin", "proj_vscode.sh")
@@ -580,6 +590,9 @@ class VenvHelper(object):
         #
         data['configurations'] = other_cfgs
         # Save updated file
+        dname = os.path.dirname( self.VSCODE_LAUNCH_JSON )
+        if not os.path.isdir( dname ):
+            os.makedirs( dname )
         with open( self.VSCODE_LAUNCH_JSON, "wt" ) as f:
             f.write( json.dumps( data, indent=4 ) )
 
@@ -656,10 +669,11 @@ def main( args : list[str] ):
     tool = VenvHelper( args )
     tool.main()
 
-def case0( ):
-    main( sys.argv )
+def case0(argv :  list[str]):
+    main( argv )
 
 def case1( _ : list[str] ):
+    # this is here for testing only under a debugger
     tmp = os.path.abspath("../..")
     os.environ[ "PROJ_PYTHON3_EXE"  ] = "/usr/local/bin/python3"
     os.environ[ "PROJ_ROOT_DIR" ] = tmp
@@ -667,4 +681,7 @@ def case1( _ : list[str] ):
     main( [sys.argv[0], "-v", "-v", tmp] )
     
 if __name__ == '__main__':
-    case1( sys.argv )
+    case0( sys.argv )
+    #case1( sys.argv )
+    sys.exit(0)
+
