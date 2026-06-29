@@ -114,6 +114,7 @@ function show_var()
     VALUE="${!NAME}"
 
     caller_show 1 "${NAME}=${VALUE}"
+    export "${NAME}"
 }
 
 show_var BASH_HELPERS_SH

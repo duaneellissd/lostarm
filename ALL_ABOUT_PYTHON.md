@@ -28,16 +28,21 @@ To help with this, we do the following:
 
 We make use of this Environment Variable.
 
+   [For details see docs/development_environment.md](docs/development_environment.md)
+
 ```bash
    export PROJ_PYTHON3_EXE=/path/to/your/python.exe
+
+   # Most often this is just export PROJ_PYTHON3_EXE=`which python3`
+   # But sometimes it needs to be a different python.
 ```
 
 ## We do create a virtual environment (VENV)
 
-   By default, we place this in the directory PROJ_VENV_DIR Which is
+   By default, we place this in the directory LOSTARM_VENV_DIR Which is
    normally located, here the default value is:
 
-   	    PROJ_VENV_DIR=${PROJ_ROOT_DIR}/.venv
+   	    LOSTARM__VENV_DIR=${PROJ_ROOT_DIR}/.venv
 
    And we do install packages into the VENV.
 

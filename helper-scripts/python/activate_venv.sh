@@ -2,11 +2,10 @@
 
 
 # 
-activate_sh=${PROJ_VENV_DIR}/bin/activate
+activate_sh=${LOSTARM_VENV_DIR}/bin/activate
 if [ ! -f ${activate_sh} ]
 then
-    rm -rf ${PROJ_VENV_DIR}
-    ${PROJ_PYTHON_EXE} -m venv ${PROJ_VENV_DIR}
-    echo "export PYTHONPATH=${PYTHONPATH}" >> ${activate_sh}
+    rm -rf ${LOSTARM_VENV_DIR}
+    ${LOSTARM_PYTHON_EXE} -m venv ${LOSTARM_VENV_DIR}
 fi
 source ${activate_sh}

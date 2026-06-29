@@ -89,7 +89,7 @@ class VenvHelper(object):
         What is the name of the VENV directory we are creating?
         (This is a command line parameter to this utility script)
         """
-        self.PROJ_VENV_DIR : (str|None) = None
+        self.LOSTARM_VENV_DIR : (str|None) = None
 
         self.parse_args(args)
         """
@@ -225,18 +225,18 @@ class VenvHelper(object):
         """ Python vars for Windows Power Shell file case """
         self.PYTHON_VARS_PS1 : (str|None) = None
         if ht in ("Linux","Darwin"):
-            tmp = os.path.join( str(self.PROJ_VENV_DIR), "bin", "python_vars.sh")
+            tmp = os.path.join( str(self.LOSTARM_VENV_DIR), "bin", "python_vars.sh")
             self.PYTHON_VARS_SH=tmp
-            tmp= os.path.join( str(self.PROJ_VENV_DIR), "bin", "activate" )
+            tmp= os.path.join( str(self.LOSTARM_VENV_DIR), "bin", "activate" )
             self.ACTIVATE_SH= tmp
         else:
-            tmp = os.path.join( str(self.PROJ_VENV_DIR), "Scripts", "python_vars.bat")
+            tmp = os.path.join( str(self.LOSTARM_VENV_DIR), "Scripts", "python_vars.bat")
             self.PYTHON_VARS_BAT=tmp
-            tmp = os.path.join( str(self.PROJ_VENV_DIR), "Scripts", "python_vars.ps1")
+            tmp = os.path.join( str(self.LOSTARM_VENV_DIR), "Scripts", "python_vars.ps1")
             self.PYTHON_VARS_BAT=tmp
-            tmp= os.path.join( str(self.PROJ_VENV_DIR), "Scripts", "activate.bat" )
+            tmp= os.path.join( str(self.LOSTARM_VENV_DIR), "Scripts", "activate.bat" )
             self.ACTIVATE_BAT= tmp
-            tmp= os.path.join( str(self.PROJ_VENV_DIR), "Scripts", "activate.ps1" )
+            tmp= os.path.join( str(self.LOSTARM_VENV_DIR), "Scripts", "activate.ps1" )
             self.ACTIVATE_PS1 = tmp
 
 
@@ -254,8 +254,8 @@ class VenvHelper(object):
             if tmp == '-v':
                 self.VERBOSE = self.VERBOSE + 1
                 continue
-            if self.PROJ_VENV_DIR is None:
-                self.PROJ_VENV_DIR = tmp
+            if self.LOSTARM_VENV_DIR is None:
+                self.LOSTARM_VENV_DIR = tmp
                 continue
             print("Multiple VENV dirs specified only 1 is allowed")
             self.usage()
@@ -334,9 +334,9 @@ class VenvHelper(object):
         os.chdir( here )
 
     def create_venv( self ):
-        if os.path.isdir( str(self.PROJ_VENV_DIR) ):
-            shutil.rmtree( str(self.PROJ_VENV_DIR) )
-        self._execute( [self.PROJ_PYTHON3_EXE, "-m", "venv", self.PROJ_VENV_DIR] )
+        if os.path.isdir( str(self.LOSTARM_VENV_DIR) ):
+            shutil.rmtree( str(self.LOSTARM_VENV_DIR) )
+        self._execute( [self.PROJ_PYTHON3_EXE, "-m", "venv", self.LOSTARM_VENV_DIR] )
         # the "str()" here makes pylance STFU otherwise these are not valid.
         self._update_python_exe()
         self._update_pythonpath()
@@ -352,7 +352,7 @@ class VenvHelper(object):
             tmp = 'python3'
         else:
             tmp = 'python3.exe'
-        tmp = str(os.path.join( str(self.PROJ_VENV_DIR), "bin", tmp ))
+        tmp = str(os.path.join( str(self.LOSTARM_VENV_DIR), "bin", tmp ))
         if not os.access( tmp, os.X_OK ):
             print("%s: is not executable!" % tmp )
             sys.exit(1)
@@ -494,7 +494,7 @@ class VenvHelper(object):
 
     def update_scripts(self):
         ht = self.host_type()
-        venv_dir = str(self.PROJ_VENV_DIR)
+        venv_dir = str(self.LOSTARM_VENV_DIR)
         if ht in ("Linux", "Darwin"):
             if self.PROJ_VSCODE_EXE  is not None:
                 fn = os.path.join(venv_dir, "bin", "proj_vscode.sh")

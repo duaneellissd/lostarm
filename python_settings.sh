@@ -2,31 +2,38 @@
 # The intent is you source this file when you wish to use python.
 # and want to setup a VENV
 
-if [ "${PROJ_ROOT_DIR}" == "" ]
+
+
+if [ "$PROJECT_SETTINGS_SH" != "" ]
 then
-    printf "Sorry, PROJ_ROOT_DIR is not defined it is required\n"
+    printf "Sorry, something is wrong"
     printf "Did you source 'project_settings.sh' yet?\n"
     exit 1
 fi
 
-tmp=`realpath ${BASH_SOURCE[0]}`
-if [ x"${PYTHON_SETTINGS_SH}" != x"" ]
+# this file
+tmp1="$PROJ_ROOT_DIR/python_settings.sh"
+tmp2=`realpath ${BASH_SOURCE[0]}`
+if [ "$tmp1" != "$tmp2" ]
 then
-    if [ "${PYTHON_SETTING_SH}" == "$tmp" ]
-    then
-	echo "ignore dup include" >> /dev/null
-	return
-    else
-	printf "PYTHON_SETTINGS_SH=%s\n" "$PYTHON_SETTINGS_SH"
-	printf "   Does not match: %s\n" "$tmp"
-	exit 1
-    fi
+    echo "Something seems wrong"
+    echo "tmp1=$tmp1"
+    echo "tmp2=$tmp2"
+    exit 1
 fi
-export PYTHON_SETTINGS_SH="$tmp"
-provide_default HELPER_SCRIPTS_DIR "${PROJ_ROOT_DIR}/helper-scripts"
-provide_default PROJ_PYTHON_DIR "${HELPER_SCRIPTS_DIR}/python"
-source ${HELPER_SCRIPTS_DIR}/bash/bash-common.sh
-provide_default PROJ_VENV_DIR "$PROJ_ROOT_DIR/.venv"
+
+if [ "$PYTHON_SETTINGS_SH" == "$tmp1" ]
+then
+    echo "Already included: $PYTHON_SETTINGS_SH"
+    return
+fi
+
+provide_default PROJ_PYTHON3_EXE   `which python3`
+
+provide_default PYTHON_SETTINGS_SH  "$tmp1"
+provide_default LOSTARm_VENV_DIR "$PROJ_ROOT_DIR/.venv"
+
+must_be_defined LOSTARM_PYTHON_EXE
 
 function setup_venv{
     $PROJ_PYTHON_DIR/

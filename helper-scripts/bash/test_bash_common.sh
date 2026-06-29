@@ -4,7 +4,7 @@ tmp=$(realpath "${BASH_SOURCE[0]}")
 tmp=$(dirname "$tmp")
 export PROJ_ROOT_DIR="$tmp"
 
-source "${PROJ_ROOT_DIR}/bash-common.sh"
+source "${PROJ_ROOT_DIR}/bash_common.sh"
 
 must_be_defined PROJ_ROOT_DIR
 must_be_defined FOOBAR

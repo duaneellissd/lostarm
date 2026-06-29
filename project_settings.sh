@@ -46,13 +46,18 @@ then
 fi
 
 export PROJ_ROOT_DIR=${tmp}
-
 export HELPER_SCRIPTS_DIR=${PROJ_ROOT_DIR}/helper-scripts
+tmp="$HELPER_SCRIPTS_DIR/bash/bash_common.sh"
+if [ ! -f "$tmp" ]
+then
+    echo "Missing: $tmp"
+    exit 1
+fi
+source "$tmp"
 
-# Get our common things.
-source ${HELPER_SCRIPTS_DIR}/bash/bash-common.sh
-show_var PROJ_ROOT_DIR
-show_var HELPER_SCRIPTS_DIR
+provide_deault PROJ_ROOT_DIR       "$PROJ_ROOT_DIR"
+provide_default HELPER_SCRIPTS_DIR "$HELPER_SCRIPTS_DIR"
+provide_default PROJ_PYTHON_DIR    "$HELPER_SCRIPTS_DIR/python"
 
 source ${PROJ_ROOT_DIR}/python_settings.sh
 
