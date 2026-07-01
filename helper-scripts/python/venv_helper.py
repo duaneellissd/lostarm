@@ -79,6 +79,9 @@ def which_exe( name : str ) -> str:
 
 class VenvHelper(object):
     def __init__(self, args : list[str] ):
+        if 'PROJ_ROOT_DIR' not in os.environ:
+            print("FATAL: Missing environment variable 'PROJ_ROOT_DIR'")
+            sys.exit(1)
         self.args = args
         """
         what level of log/debug are we creating, see self.verbose_print()
@@ -148,7 +151,7 @@ class VenvHelper(object):
         """
         self.PROJ_PYTHON3_EXE: str | None = os.environ.get("PROJ_PYTHON3_EXE",None)
         if self.PROJ_PYTHON3_EXE is None:
-            print("ERROR: Missing ENV Variable: PROJ_PYTHON3_EXE it is strongly suggested")
+            print("WARNING: Missing ENV Variable: PROJ_PYTHON3_EXE it is strongly suggested")
             tmp = which_exe( "python3" )
             if tmp is None:
                 print("ERROR: Cannot find 'python3' in the path")
@@ -333,6 +336,7 @@ class VenvHelper(object):
         self._execute( tmp )
         os.chdir( here )
 
+
     def create_venv( self ):
         if os.path.isdir( str(self.LOSTARM_VENV_DIR) ):
             shutil.rmtree( str(self.LOSTARM_VENV_DIR) )
@@ -429,8 +433,11 @@ class VenvHelper(object):
             for tmp in lines:
                 tmp = tmp.rstrip()
                 if tmp.startswith("source "):
+                    # the old source might be pointing at a different path
+                    # So we look for the 'basename' not the abs path.
                     if os.path.basename(str(self.PYTHON_VARS_SH)) in tmp:
                         found = True
+                        # The old one might be a different 'source' path
                         tmp = "source %s" % self.PYTHON_VARS_SH
                 result.append(tmp)
             if not found:
@@ -438,40 +445,43 @@ class VenvHelper(object):
             with open( self.ACTIVATE_SH, "wt" ) as f:
                 f.write( "\n".join(result) )
                 f.write("\n")
-        elif ht == "Windows":
-            with open( self.ACTIVATE_BAT, "rt" ) as f:
-                lines = f.readlines()
-            result = []
-            for tmp in lines:
-                tmp = tmp.rstrip()
-                if tmp.startswith( "call " ):
-                    if os.path.basename(str(self.PYTHON_VARS_BAT)) in tmp:
-                        found = True
-                        tmp = "call %s" % self.PYTHON_VARS_BAT
-                result.append( tmp )
-            if not found:
-                result.append( "call %s" % self.PYTHON_VARS_BAT )
-            with open( self.ACTIVATE_BAT, "wt" ) as f:
-                f.write( "\n".join(result) )
-                f.write("\n")
-            found = False
-            with open( self.ACTIVATE_PS1, "rt" ) as f:
-                lines = f.readlines()
-            for tmp in lines:
-                tmp = tmp.rstrip()
-                if tmp.startswith("."):
-                    if os.path.basename(str(self.PYTHON_VARS_PS1)) in tmp:
-                        found = True
-                        tmp = ". %s" % self.PYTHON_VARS_PS1
-                    result.append(tmp)
-            if not found:
-                result.append(". %s" % self.PYTHON_VARS_PS1 )
-            with open( str(self.PYTHON_VARS_PS1), "wt" ) as f:
-                f.write( "\n".join(result) )
-                f.write('\n')
+            return
+        assert( ht == "Windows")
+        with open( self.ACTIVATE_BAT, "rt" ) as f:
+            lines = f.readlines()
+        result = []
+        for tmp in lines:
+            tmp = tmp.rstrip()
+            if tmp.startswith( "call " ):
+                if os.path.basename(str(self.PYTHON_VARS_BAT)) in tmp:
+                    found = True
+                    tmp = "call %s" % self.PYTHON_VARS_BAT
+            result.append( tmp )
+        if not found:
+            result.append( "call %s" % self.PYTHON_VARS_BAT )
+        with open( self.ACTIVATE_BAT, "wt" ) as f:
+            f.write( "\n".join(result) )
+            f.write("\n")
+        found = False
+        with open( self.ACTIVATE_PS1, "rt" ) as f:
+            lines = f.readlines()
+        for tmp in lines:
+            tmp = tmp.rstrip()
+            if tmp.startswith("."):
+                if os.path.basename(str(self.PYTHON_VARS_PS1)) in tmp:
+                    found = True
+                    tmp = ". %s" % self.PYTHON_VARS_PS1
+                result.append(tmp)
+        if not found:
+            result.append(". %s" % self.PYTHON_VARS_PS1 )
+        with open( str(self.PYTHON_VARS_PS1), "wt" ) as f:
+            f.write( "\n".join(result) )
+            f.write('\n')
+        return
 
-        # go read our spelling words
     def spelling_read_our_list( self ):
+        """ populate the spelling words in the Python IDEs"""
+
         if not os.path.isfile( self.SPELLING_WORDS_JSON_FN ):
             self.SPELLING_WORDS = []
             return
@@ -488,40 +498,72 @@ class VenvHelper(object):
         self.SPELLING_WORDS = data
 
     def update_vscode(self):
+        """
+        VSCODE -we have to rewrite some json files in the .vscode directory.
+        """
         self._update_vscode_launch()
-        # Spelling is done INSIDE the settings.json file
+        # Then the python setup too.
         self._vscode_python_settings()
 
     def update_scripts(self):
+        """
+        To help our user, we create two scripts in the VENV BIN directory.
+        One named: proj_vscode,
+        Second: proj_pycharm
+
+        Both setup some environment variables that are calculated by this script.
+        Then launch the specific tool
+        """
         ht = self.host_type()
         venv_dir = str(self.LOSTARM_VENV_DIR)
-        if ht in ("Linux", "Darwin"):
-            if self.PROJ_VSCODE_EXE  is not None:
-                fn = os.path.join(venv_dir, "bin", "proj_vscode.sh")
-                with( open(fn, "wt") ) as f:
-                    f.write("#! /bin/bash\n")
-                    f.write("source %s\n" % self.PYTHON_VARS_SH )
-                    f.write("exec %s\n" % self.PROJ_VSCODE_EXE )
-            if self.PROJ_PYCHARM_EXE is not None:
-                fn = os.path.join( venv_dir, "bin", "proj_pycharm.sh" )
-                with( open(fn, "wt") ) as f:
-                    f.write("#! /bin/bash\n")
-                    f.write("source %s\n" % self.PYTHON_VARS_SH )
-                    f.write("exec %s\n" % self.PROJ_PYCHARM_EXE )
-        else:
-            if self.PROJ_VSCODE_EXE  is not None:
-                fn = os.path.join( venv_dir, "Scripts", "proj_vscode.bat" )
-                with ( open(fn, "wt") ) as f:
-                    f.write("@echo off\n")
-                    f.write("call %s\n" % self.PYTHON_VARS_BAT )
-                    f.write("%s\n" % self.PROJ_VSCODE_EXE)
-            if self.PROJ_PYCHARM_EXE is not None:
-                fn = os.path.join( venv_dir, "Scripts", "proj_pycharm.bat" )
-                with ( open(fn, "wt") ) as f:
-                    f.write("@echo off\n")
-                    f.write("call %s\n" % self.PYTHON_VARS_BAT )
-                    f.write("%s\n" % self.PROJ_PYCHARM_EXE)
+        if self.PROJ_VSCODE_EXE is None:
+            print("WARNING: Could not find VSCODE executable")
+            print("Please set/export the variable: PROJ_VSCODE_EXE")
+        if self.PROJ_PYCHARM_EXE is None:
+            print("WARNING Could not find PYCHARM executable")
+            print("Please set/export the variable: PROJ_PYCHARM_EXE")
 
+        if ht in ("Linux", "Darwin"):
+            fn = os.path.join(venv_dir, "bin", "proj_vscode.sh")
+            with( open(fn, "wt") ) as f:
+                f.write("#! /bin/bash\n")
+                f.write("source %s\n" % self.PYTHON_VARS_SH )
+                if self.PROJ_VSCODE_EXE is None:
+                    f.write("echo ERROR VSCODE Was not found!\n")
+                    f.write("Please set/export the variable: PROJ_VSCODE_EXE")
+                    f.write("exit 1")
+                else:
+                    f.write('exec %s "${@}"\n' % self.PROJ_VSCODE_EXE )
+            fn = os.path.join( venv_dir, "bin", "proj_pycharm.sh" )
+            with( open(fn, "wt") ) as f:
+                f.write("#! /bin/bash\n")
+                f.write("source %s\n" % self.PYTHON_VARS_SH )
+                if self.PROJ_PYCHARM_EXE is None:
+                    f.write("echo ERROR PyCharm Was not found!\n")
+                    f.write("Please set/export the variable: PROJ_PYCHARM_EXE")
+                else:
+                    f.write('exec %s "${@}"\n' % self.PROJ_PYCHARM_EXE )
+            return
+        assert( ht == 'Windows' )
+        fn = os.path.join( venv_dir, "Scripts", "proj_vscode.bat" )
+        with ( open(fn, "wt") ) as f:
+            f.write("@echo off\n")
+            f.write("call %s\n" % self.PYTHON_VARS_BAT )
+            if self.PROJ_VSCODE_EXE is not None:
+                f.write("%s\n" % self.PROJ_VSCODE_EXE)
+            else:
+                f.write("echo VSCODE was not found\n")
+                f.write("Please set the variable: PROJ_VSCODE_EXE\n")
+
+        fn = os.path.join( venv_dir, "Scripts", "proj_pycharm.bat" )
+        with ( open(fn, "wt") ) as f:
+            f.write("@echo off\n")
+            f.write("call %s\n" % self.PYTHON_VARS_BAT )
+            if self.PROJ_PYCHARM_EXE is not None:
+                f.write("%s\n" % self.PROJ_PYCHARM_EXE)
+            else:
+                f.write("echo PyCharm was not found\n")
+                f.write("Please set the variable: PROJ_PYCHARM_EXE\n")
 
     def _update_vscode_launch(self):
         """
@@ -669,19 +711,31 @@ def main( args : list[str] ):
     tool = VenvHelper( args )
     tool.main()
 
-def case0(argv :  list[str]):
+def normal_main(argv :  list[str]):
     main( argv )
 
-def case1( _ : list[str] ):
+def debug_main( _ : list[str] ):
     # this is here for testing only under a debugger
-    tmp = os.path.abspath("../..")
-    os.environ[ "PROJ_PYTHON3_EXE"  ] = "/usr/local/bin/python3"
-    os.environ[ "PROJ_ROOT_DIR" ] = tmp
-    tmp = os.path.join(tmp,".venv")
-    main( [sys.argv[0], "-v", "-v", tmp] )
-    
+    os.environ[ "PROJ_PYTHON3_EXE"  ] = which_exe("python3")
+    os.environ[ "PROJ_ROOT_DIR" ] = os.path.abspath("../..")
+    tmp = os.path.join(os.environ['PROJ_ROOT_DIR'],".venv")
+    main( [sys.argv[0],  tmp] )
+
+
+def is_debugging():
+    # Check if a trace function is active (used by pdb, PyCharm, etc.)
+    has_trace = getattr(sys, 'gettrace', None) is not None and sys.gettrace() is not None
+
+    # Check if the built-in breakpoint hook has been overwritten by an IDE/debugger
+    has_breakpoint = sys.breakpointhook.__module__ != "sys"
+
+    return has_trace or has_breakpoint
+
 if __name__ == '__main__':
-    case0( sys.argv )
-    #case1( sys.argv )
+    if not is_debugging():
+        normal_main( sys.argv )
+    else:
+        # inside PyCharm or Python Debugger.
+        debug_main( sys.argv )
     sys.exit(0)
 

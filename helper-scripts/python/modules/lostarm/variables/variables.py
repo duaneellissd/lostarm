@@ -1,195 +1,347 @@
-#
-import os
 import re
-import time
 import sys
-import platform
-import socket
-from collections.abc import Callable
-import getpass
 
-from lostarm import verbose_print, fatal
+# So functions in these work..
+import os
 
-re_var = re.compile(r"^(?P<lhs>.*)[$][{](?P<var_name>[A-Za-z_][A-Za-z0-9_]*)[}](?P<rhs>.*)$")
-re_func = re.compile(r"^(?P<lhs>.*)[$][{](?P<func_name>[A-Za-z_][A-Z.a-z0-9_]*)(?P<params>[(].*[)])[}](?P<rhs>.*)$")
 
-all_functions : dict[str,"func_entry"]= {}
-class func_entry():
-    def __init__( self, name : str, callable_thing : Callable, n_params : int  ):
+def my_extension(s: str):
+    parts = os.path.splitext(s)
+    return parts[1]
+
+
+def no_extension(s: str):
+    parts = os.path.splitext(s)
+    return parts[0]
+
+
+def stat_st_mtime(s: str):
+    s = os.stat(s)
+    return s.st_mtime
+
+
+def stat_st_size(s: str):
+    s = os.stat(s)
+    return s.st_size
+
+
+func_table = {
+    "str.upper": (str.upper, "s"),
+    "str.lower": (str.lower, "s"),
+    "str.endswith": (str.endswith, "s"),
+    "str.startswith": (str.startswith, "s"),
+    "str.find": (str.find, "s"),
+    "str.isalpha": (str.isalpha, "s"),
+    "str.isalnum": (str.isalnum, "s"),
+    "str.isascii": (str.isascii, "s"),
+    "str.isdecimal": (str.isdecimal, "s"),
+    "str.isdigit": (str.isdigit, "s"),
+    "str.islower": (str.islower, "s"),
+    "str.isupper": (str.isupper, "s"),
+    "str.join": (str.join, "s,l"),
+    "str.lstrip": (str.lstrip, "s"),
+    "str.rstrip": (str.rstrip, "s"),
+    "str.strip": (str.strip, "s"),
+    "str.removeprefix": (str.removeprefix, "s,s"),
+    "str.removesuffix": (str.removesuffix, "s,s"),
+    "str.replace": (str.replace, "s,s"),
+    "len": (len, "s"),
+    "os.getcwd": (os.getcwd, ""),
+    "os.path.abspath": (os.path.abspath, "s"),
+    "os.path.join": (os.path.join, "*"),
+    "os.path.dirname": (os.path.dirname, "s"),
+    "os.path.basename": (os.path.basename, "s"),
+    "os.path.getsize": (os.path.getsize, "s"),
+    "os.path.isdir": (os.path.isdir, "s"),
+    "os.path.normcase": (os.path.normcase, "s"),
+    "os.path.normpath": (os.path.normpath, "s"),
+    "os.path.realpath": (os.path.realpath, "s"),
+    "pathtool.extension": (my_extension, "s"),
+    "pathtool.no_extension": (no_extension, "s"),
+    "stat.st_mtime": (stat_st_mtime, "s"),
+    "stat.st_size": (stat_st_size, "s")
+}
+
+
+class VarError(Exception):
+    '''
+    A common Exception for all VAR errors.
+    (so you can catch one, not many errors)
+    '''
+    SYNTAX = 1
+    UNDEF_FUNC = 2
+    UNDEF_VAR = 3
+    RECURSION = 4
+    DUPLICATE = 5
+
+    def __init__(self, typecode: int, msg: str, history: list):
+        m = [msg]
+        for n, h in enumerate(history):
+            m.append("%d) %s" % (n, h))
+        m = '\n'.join(m)
+        Exception.__init__(self, m)
+        self.msg = m
+        self.history = history
+        self.typecode = typecode
+
+
+class Var_SyntaxError(VarError):
+    '''
+    Raised when we find an obvious syntax error.
+    '''
+
+    def __init__(self, history: list, text: str):
+        VarError.__init__(self, VarError.SYNTAX, "Syntax error: %s" % text, history)
+        self.text = text
+
+
+class Var_UndefinedFunc(VarError):
+    '''
+    Raised when an undefined variable function is called.
+    '''
+
+    def __init__(self, name: str, history: list):
+        VarError.__init__(self, VarError.UNDEF_FUNC, "undefined function: %s" % name, history)
         self.name = name
-        self.n_params = n_params
-        self.callable_thing = callable_thing
-    def call_this( self, params ) -> str:
-        # Call this function pass parameters and return the result.
-        params = params.strip()
-        if self.n_params == 0:
-            if len(params) != 0:
-                fatal("%s() does not take parameters" % self.name )
-            return self.callable_thing()
-        if self.n_params == 1:
-            result = self.callable_thing( params )
-            return result
-        args = params.split(',')
-        if self.n_params != -1:
-            if len(args) != self.n_params:
-                fatal("%s() requires %d parameters, got: %s" % (self.name, self.n_params, params) )
-        result = self.callable_thing( *args )
+
+
+class Var_UndefinedVar(VarError):
+    '''
+    Raised when an undefined variable is referenced
+    '''
+
+    def __init__(self, name: str, history: list):
+        VarError.__init__(self, VarError.UNDEF_VAR, "ERROR undefined var: %s" % name, history)
+        self.name = name
+
+
+class Var_RecursionError(VarError):
+    '''
+    Raised when a variable is recursive
+    example: ${A}->${B}->${A} endlessly.
+    '''
+
+    def __init__(self, history: list):
+        VarError.__init__(self, VarError.RECURSION, "Recursive stop %d tries" % len(history), history)
+
+
+class Var_Duplicate(VarError):
+    '''
+    Raised when defining a variable and it is a duplicate
+    '''
+
+    def __init__(self, new_name, old_name):
+        # One day, the new/old will have "where defined" attribute.
+        VarError.__init__(self, new_name.where, VarError.DUPLICATE,
+                          "Duplicate variable: %s" % new_name)
+        self.new_name = new_name
+        self.old_name = old_name
+
+class VariableValue(object):
+    """
+    A string with a filename and line number so you can print a usable error message
+    ie: "FOO" was defined in file BAR at line 42.
+    """
+    def __init__(self, value : str, filename=None, lineno = None ):
+        if not isinstance(value,str):
+            value = str(value)
+        self.value = value
+        self.filename = filename
+        self.lineno = lineno
+    def __str__(self):
+        return self.value
+
+
+
+# SIMPLE-MATCH:
+#   Match <LHS> ${ CONTENT } <RHS>
+#   Note: LHS or RHS might be empty.
+_re_simple_var = re.compile(r'(?P<LHS>^.*)[$][{](?P<CONTENTS>.*)[}](?P<RHS>.*$)')
+# Match a function call like: ${os.path.abspath(${OBJ_DIR})}
+#   note that: ${OBJ_DIR} would be resolved first...
+#   Then the function os.path.abspath() would be called.
+_re_function_call = re.compile(r'^(?P<fname>[a-zA-Z_][A-Z0-9a-z_.]*)[(](?P<params>.*)[)]$')
+# This matches a basic variable name, ie: ${OBJ_DIR}
+# used to determine if we have a VARNAME or FUNCTION_CALL
+_re_basic_name = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
+
+
+class _resolver():
+    '''
+    This is the variable resolver.
+    You don't use this directly, the Variable class uses this to resolve vars.
+    Generally, the idea is to call: "_resolver.do_pass()" in a loop.
+    '''
+
+    def __init__(self, parent, starting_text, vars: dict):
+        self._parent = parent
+        self._vars = vars
+        self.history = [starting_text]
+
+    def _do_replacement(self, lhs, value, rhs):
+
+        result = lhs + value + rhs
+        self.history.append(result)
+        return (True, result)
+
+    def _basic_var(self, lhs, varname, rhs):
+        '''
+        Once a basic variable is found, this does the replacement.
+        '''
+        if str(varname) not in self._vars:
+            e = Var_UndefinedVar(varname, self.history)
+            self._parent.fatal(e)
+            # raise e
+        value = self._vars.get(varname, None)
+        result = self._do_replacement(lhs, value, rhs)
         return result
 
-def _register_function( name : str, function : Callable, param_count : int ):
-    global all_functions
-    all_functions[ name ] = func_entry( name, function, param_count)
+    def _get_params(self, fname: str, fentry: dict, param_text: str):
+        '''
+        Given the function table entry (a tuple)
+        Where: fentry[0] = the function pointer
+        And:   fentry[1] = the parameter list.
+        RETURN an LIST of parameters.
 
-_register_function( "os.getcwd", os.getcwd, 0 )
-_register_function( "os.path.abspath", os.path.abspath, 1 )
-_register_function( "os.path.relpath", os.path.relpath, 1 )
-_register_function( "os.path.basename", os.path.basename, 1 )
-_register_function( "os.path.dirname", os.path.dirname, 1 )
-_register_function( "os.path.expanduser", os.path.expanduser, 1 )
-_register_function( "os.path.expand_env_vars", os.path.expandvars, 1 )
+        TODAY: I am a lazy bastard, so we split on commas
+        FUTURE: we might add quoted strings and fancy stuff
+        '''
+        # Just split our params up simple style.
+        if len(param_text) == 0:
+            our_params = []
+        else:
+            our_params = param_text.split(',')
 
-_register_function( "os.path.getsize", os.path.getsize, 1 )
-_register_function( "os.path.realpath", os.path.realpath,1 )
-_register_function( "os.path.samefile", os.path.samefile, 2 )
-_register_function( "os.path.splitext", os.path.splitext, 1 )
-_register_function( "os.path.splitroot", os.path.splitroot, 1 )
+        # TODO:
+        #    Determine what the actual implementation requires.
+        #    For some detail, see:
+        #        https://docs.python.org/3/library/inspect.html
+        # The idea is some type of syntax checking..
 
-_register_function( "time.ctime", time.ctime, 1 )
+        return our_params
 
-time_once = None
-def _time_wrapper():
-    global time_once
-    if time_once is None:
-        time_once = str(int(time.time()))
-    return time_once
-_register_function( "time.time_int", _time_wrapper, 0 )
+    def _do_function_call(self, lhs, func_match, rhs):
+        '''
+        This handles a function call, for example: ${str.upper(${A})}
+        '''
+        fname = func_match['fname']
+        if fname not in func_table:
+            raise Var_UndefinedFunc(fname, self.history)
+        entry = func_table.get(fname)
+        param_list = self._get_params(fname, entry, func_match['params'])
+        func_ptr = entry[0]
+        result = func_ptr(*param_list)
+        if not isinstance(result, str):
+            result = str(result)
+        text = self._do_replacement(lhs, result, rhs)
+        return text
 
-_YYYYMMDDSS_HHMMSS_once = None
+    def do_pass(self, text):
+        '''
+        this performs the simple and function type replacement.
+        This does ONE and only ONE replacement.
+        This function returns a tuple, (BOOL, Result)
+        This function also tracks "history"
+        where:
+           Result is the current text string.
+           BOOL is TRUE if a replacement was made (forward progress)
+           BOOL is FALSE if no replacement was found (ie: done)
+        '''
+        # stop the recursive case where:  ${A}->${B}->${A} endlessly.
+        if len(self.history) > 20:
+            raise Var_RecursionError(self.history)
+        lh_loc = 0
+        rh_loc = len(text)
+        done = False
+        while not done:
+            start = text.find("${", lh_loc)
+            if start < 0:
+                # No further progress can be made.
+                return (False, text)
+            # See if there is another further ahead, ie: ${${inside}}
+            tmp = text.find("${", start + 2)
+            if tmp >= 0:
+                # There is another var so keep searching
+                lh_loc = tmp  # +2 skips the opening ${
+                continue
+            done = True
+            lh_loc = start
+        # find the closing curly brace
+        rh_loc = text.find('}', lh_loc)
+        if rh_loc < 0:
+            # Missing closing curly brace?
+            raise Var_SyntaxError(self.history, text)
+        lhs = text[0:lh_loc]  #
+        # The +2 skips the opening ${
+        varname = text[lh_loc + 2:rh_loc].strip()
+        rhs = text[rh_loc + 1:]  # +1 skips the } close.
+        if _re_basic_name.match(varname):
+            return self._basic_var(lhs, varname, rhs)
 
-def _time_YYYYMMDDSS_HHMMSS() -> str:
-    global _YYYYMMDDSS_HHMMSS_once
-    if _YYYYMMDDSS_HHMMSS_once is None:
-        _YYYYMMDDSS_HHMMSS_once = time.strftime("%Y%m%d_%H%M%S")
-    return _YYYYMMDDSS_HHMMSS_once
-_register_function( "time.YYYYMMDDSS_HHMMSS", _time_YYYYMMDDSS_HHMMSS, 0 )
-
-_register_function( "str.upper", str.upper, 1 )
-_register_function( "str.lower", str.lower, 1 )
-_register_function( "str.upper", str.upper, 1 )
-_register_function( "str.upper", str.upper, 1 )
-_register_function( "str.join", str.join, -1 )
-
-_register_function( "str.capitalize", str.capitalize, 1 )
-_register_function( "str.lstrip", str.lstrip, 1 )
-_register_function( "str.rstrip", str.rstrip, 1 )
-_register_function( "str.strip", str.strip, 1 )
-_register_function( "str.replace", str.replace, 2 )
-def _get_username():
-    return getpass.getuser()
-_register_function( "get_username", _get_username, 0 )
-_register_function( "platform.system", platform.system, 0 )
-_register_function( "platform.node", platform.node, 0 )
-_register_function( "platform.system", platform.system, 0 )
-_register_function( "socket.gethostname", socket.gethostname,0 )
-
-
-
+        # If not a var, is this a function call?
+        content = varname.strip()
+        # FUTURE: support NESTED function calls??
+        # ie:  ${os.path.abspath(os.path.join('dog','cat','frog'))}
+        func_match = _re_function_call.match(content)
+        if func_match is not None:
+            # YES - then do the function call.
+            return self._do_function_call(lhs, func_match, rhs)
+        # otherwise it is a syntax error.
+        raise Var_SyntaxError(self.history, text)
 
 
 class Variables():
-    def __init__( self ):
-        self.vars = dict()
-        self.use_env = True
-        self.re_def_is_fatal = True
-        self.re_def_is_warning = True
-        self._r_history = []
-        
-    def _dump_history( self ):
-        """
-        Print the history of the variable resolution
-        """
-        for n, s in enumerate(self._r_history):
-            verbose_print(0, "%2d) %s" % (n,s))
+    '''
+    This gives a crude "shell-like" text variables with some functions.
+    Example:
+        dog_name=Walter
+        the text: "My Dog's name is ${dog_name}"
+        when resolved, would be: "My Dog's name is Walter"
+    '''
 
-    def add_variable( self, name, value ) -> None:
-        """
-        Define a variable
-        Example: Support a command line defined variable.
-        """
-        if name in self.vars:
-            if self.re_def_is_fatal or self.re_def_is_warning:
-                verbose_print(1,"Redefined=%s" % name)
-                verbose_print(1,"old: %s=%s" % (name,self.vars[name]))
-                verbose_print(1,"new: %s=%s" % ( name,value ))
-            if self.re_def_is_fatal:
-                fatal("Sorry, that is fatal")
-        self.vars[name] = value
+    def __init__(self):
+        self._vars = dict()
+        self.just_exit = True
 
-    def value_of( self, name ) -> str:
-        """ 
-        Return the value of the variable: "name"
-        If not defined, fatal error.
-        """
-        value = ""
-        if name in self.vars:
-            value = self.vars[name]
-        elif self.use_env:
-            if name in os.environ:
-                return os.environ[name]
+    def fatal(self, the_exception):
+        if self.just_exit:
+            print(str(the_exception))
+            sys.exit(1)
         else:
-            self._dump_history()
-            fatal("undefined: %s" % name )
-        return value
+            raise the_exception
 
-    def _function_call(self, m: re.Match) -> str | None:
-        _ = self
-        name = m['func_name']
-        params = m['params']
-        params = params[1:-1]
-        entry = all_functions.get(name, None)
-        print("name: %s, params: %s" % (name, params))
-        if entry is None:
-            fatal("%s(%s) does not exist" % (name, params))
-        result = entry.call_this(params)
-        return result
+    def replace(self, name, value):
+        '''
+        Replace the definition of this var.
+        '''
+        self._vars[name] = value
 
-    def resolve( self, text : str ) -> str:
-        """
-        Replace all ${VARIABLES} in the string.
-        Replace all ${FUNC(calls)} in the string.
-        """
+    def add_variable(self, name : str, value :str ) -> None:
+        self.add( name,value )
+    def add(self, new_name : str, value : str) -> None:
+        if new_name in self._vars:
+            old = self._vars[new_name]
+            raise Var_Duplicate(new_name, old)
+        self.replace(new_name, value)
 
-        self._r_history = []
-        while True:
-            print("text: %s" % text )
-            self._r_history.append( text )
-            if len(self._r_history) > 50:
-                self._dump_history()
-                fatal("string does not resolve after 50 rounds")
-            m = re_var.match( text )
-            if m:
-                print("Var Match: %s" % text)
-                lhs = m['lhs']
-                name = m['var_name']
-                rhs = m['rhs']
-                value = self.value_of(name)
-                text = lhs + value + rhs
-                # Try for next variable.
-                continue
-            # Ok no simple vars try function calls.
-            m = re_func.match(text)
-            # If this is Non
-            if m is not None:
-                print("func match: %s" % text)
-                # Success!
-                print("CALL")
-                value = self._function_call( m )
-                lhs = m['lhs']
-                rhs = m['rhs']
-                text = lhs + value + rhs
-                print("TEXT is now: %s" % text)
-                continue
-            self._r_history = []  # release memory.
-            return text
+    def add_dict(self, somedict):
+        for k, v in somedict.items():
+            self.add(k, v)
 
+    def resolve(self, text):
+        '''
+        Given text in the form: "hello ${planet}" perform var replacement.
+        Also handles: "hello ${str.upper(${planet})}"
+        '''
+        tmp = _resolver(self, text, self._vars)
+        progress = True
+        while progress:
+            (progress, text) = tmp.do_pass(text)
+        return text
+
+
+
+if __name__ == '__main__':
+    unit_test()
+    sys.exit(0)
 

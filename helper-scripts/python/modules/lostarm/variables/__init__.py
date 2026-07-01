@@ -1,3 +1,3 @@
 #
-from variables.variables import Variables
+from variables.variables import Variables, VarError
 

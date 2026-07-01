@@ -55,7 +55,7 @@ then
 fi
 source "$tmp"
 
-provide_deault PROJ_ROOT_DIR       "$PROJ_ROOT_DIR"
+provide_default PROJ_ROOT_DIR       "$PROJ_ROOT_DIR"
 provide_default HELPER_SCRIPTS_DIR "$HELPER_SCRIPTS_DIR"
 provide_default PROJ_PYTHON_DIR    "$HELPER_SCRIPTS_DIR/python"
 

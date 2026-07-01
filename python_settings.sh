@@ -4,9 +4,9 @@
 
 
 
-if [ "$PROJECT_SETTINGS_SH" != "" ]
+if [ "$PROJECT_SETTINGS_SH" == "" ]
 then
-    printf "Sorry, something is wrong"
+    printf "Sorry, something is wrong\n"
     printf "Did you source 'project_settings.sh' yet?\n"
     exit 1
 fi
@@ -28,10 +28,15 @@ then
     return
 fi
 
+set -x
 provide_default PROJ_PYTHON3_EXE   `which python3`
+set +x
+echo PROJ_PYTHON3_EXE=${PROJ_PYTHON3_EXE}
+
+exit 0
 
 provide_default PYTHON_SETTINGS_SH  "$tmp1"
-provide_default LOSTARm_VENV_DIR "$PROJ_ROOT_DIR/.venv"
+provide_default LOSTARM_VENV_DIR "$PROJ_ROOT_DIR/.venv"
 
 must_be_defined LOSTARM_PYTHON_EXE
 

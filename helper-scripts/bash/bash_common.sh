@@ -102,10 +102,12 @@ function provide_default()
       caller_show 1 "provide_default ${variable_name}=${value}"
     else
       old_value="${value}"
-      caller_show 1 "already-set ${variable_name}=${value}"
+      caller_show 1 "already-set ${variable_name}=${old_value}"
     fi
     # shellcheck disable=SC2163
-    export "${variable_name}"
+    echo "AA"
+    export "${variable_name}"="${value}"
+    echo "BB"
 }
 
 function show_var()
