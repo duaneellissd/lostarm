@@ -46,42 +46,6 @@ Other tools you might like and we try (or will try someday) to support:
 6. FUTURE: MingGW
 
 
-## Why LOSTARM_PYTHON3_EXE
-
-Why is this not just in your path in some standard way?
-Oh I wish it was that easy, but often it is not.
-
-[Some may remember DLL HELL](https://en.wikipedia.org/wiki/DLL_hell)
-
-This problem is very simular.
-
-There are some embedded tools that ship with their own private
-version of Python, (I'm looking at you Xilinx Vivado and Vitis) And
-- Microsemi SoftConsole, and various others...
-
-Often that is some other old version of Python. Lovely.
-
-* Xilinx might be on an older version of Python
-* And Microsemi has yet another version
-* And your Linux box has another version.
-
-Many tools that include GDB also come with GDB_PY which requires
-its own private version of PYTHON so GDB plug in stuff works.
-
-These also always insert their version of what ever into your path.
-They do not care because their goal is to make their tool work.
-
-Their view is: To hell with all of the others out there. My stuff
-works only with my version of Python.
-
-And where does that leave you and me? We require some way to get to
-the version of python you want to use.  Reguardless of what ever
-nonsense that tool vendor thrusts upon you.
-
-So, we use the variable: LOSTARM_PYTHON3_EXE to do that.
-
-
-
 
 ## What about Ruby, or Tcl, Rust, Haskel, or Whatever.
 

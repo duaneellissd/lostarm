@@ -21,7 +21,7 @@ then
 else
     if [ "$tmp" == "${BASH_HELPERS_SH}" ]
     then
-        echo "BashHelper already included"
+        #echo "bash_common.sh already included"
         return
     else
         printf "This seems wrong?\n"
@@ -58,17 +58,21 @@ function caller_show()
   # shellcheck disable=SC2317
   printf "%s:%d: %s: %s\n" "${filename}" "${lineno}" "${func_name}" "${msg}"
 }
+export -f caller_show
 
 function caller_fatal()
 {
     caller_show "$1" "FATAL: $2"
     exit 1
 }
+export -f caller_fatal
 
 function caller_info()
 {
     caller_show "$1" "INFO: $2"
 }
+export -f caller_info
+
 
 # shellcheck disable=SC2317
 function must_be_defined()
@@ -86,6 +90,7 @@ function must_be_defined()
         caller_info 2 "$msg"
     fi
 }
+export -f must_be_defined
 
 # shellcheck disable=SC2317
 function provide_default()
@@ -98,17 +103,16 @@ function provide_default()
     old_value="${!variable_name}"
     if [ "${old_value}" == "" ]
     then
-      declare "${variable_name}=${value}"
-      caller_show 1 "provide_default ${variable_name}=${value}"
+	eval ${variable_name}=${value}
+	caller_show 1 "provide_default ${variable_name}=${value}"
     else
-      old_value="${value}"
-      caller_show 1 "already-set ${variable_name}=${old_value}"
+	old_value="${value}"
+	caller_show 1 "already-set ${variable_name}=${old_value}"
     fi
     # shellcheck disable=SC2163
-    echo "AA"
-    export "${variable_name}"="${value}"
-    echo "BB"
+    export ${variable_name}
 }
+export -f provide_default
 
 function show_var()
 {
@@ -118,5 +122,7 @@ function show_var()
     caller_show 1 "${NAME}=${VALUE}"
     export "${NAME}"
 }
+export -f show_var
 
 show_var BASH_HELPERS_SH
+

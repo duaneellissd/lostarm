@@ -1,5 +1,6 @@
 #! /bin/bash
 # The intent is you "source" this file
+echo "BEGIN: ${BASH_SOURCE[0]}"
 
 VERBOSE=0
 if [ "$1" == "-v" ]
@@ -61,3 +62,4 @@ provide_default PROJ_PYTHON_DIR    "$HELPER_SCRIPTS_DIR/python"
 
 source ${PROJ_ROOT_DIR}/python_settings.sh
 
+echo "END: ${BASH_SOURCE[0]}"

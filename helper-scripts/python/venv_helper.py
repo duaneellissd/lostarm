@@ -11,6 +11,8 @@ import platform
 import shutil
 import json
 
+THIS_FILE=os.path.abspath(__file__)
+THIS_DIR=os.path.dirname( THIS_FILE )
 
 def _find_and_replace(filename: str, findme: str, value: str) -> None:
     """
@@ -149,9 +151,9 @@ class VenvHelper(object):
         SO - we assume/require you have set this variable
         For sort of same reasons as PYCHARM provides this escape hatch.
         """
-        self.PROJ_PYTHON3_EXE: str | None = os.environ.get("PROJ_PYTHON3_EXE",None)
-        if self.PROJ_PYTHON3_EXE is None:
-            print("WARNING: Missing ENV Variable: PROJ_PYTHON3_EXE it is strongly suggested")
+        self.LOSTARM_PYTHON3_EXE: str | None = os.environ.get("LOSTARM_PYTHON3_EXE",None)
+        if self.LOSTARM_PYTHON3_EXE is None:
+            print("WARNING: Missing ENV Variable: LOSTARM_PYTHON3_EXE it is strongly suggested")
             tmp = which_exe( "python3" )
             if tmp is None:
                 print("ERROR: Cannot find 'python3' in the path")
@@ -160,10 +162,17 @@ class VenvHelper(object):
                 print("FATAL: Tried: 'python3' and that failed too")
                 sys.exit(1)
             # verify version of Python
-            self.PROJ_PYTHON3_EXE = tmp
-        elif not os.access( self.PROJ_PYTHON3_EXE, os.X_OK ):
-            print("OS Env Variable: %s=%s" % ("PROJ_PYTHON3_EXE", self.PROJ_PYTHON3_EXE ) )
+            self.LOSTARM_PYTHON3_EXE = tmp
+        elif not os.access( self.LOSTARM_PYTHON3_EXE, os.X_OK ):
+            print("OS Env Variable: %s=%s" % ("LOSTARM_PYTHON3_EXE", self.LOSTARM_PYTHON3_EXE ) )
             print("FATAL: Not an executable")
+            sys.exit(1)
+        if (' ' in self.LOSTARM_PYTHON3_EXE) or ("\t" in self.LOSTARM_PYTHON3_EXE):
+            # Yea, i have seen tabs in the path too! Dam those people.
+            print("ERROR: Python3 is installed in a troublesome directory/path.")
+            print("That path contains whitespace.  There must be no whitespace in that path")
+            print("whitespace is either a tab of space")
+            print("env var: LOSTARM_PYTHON3_EXE=%s" % self.LOSTARM_PYTHON3_EXE )
             sys.exit(1)
         self._verify_python_version()
 
@@ -267,7 +276,7 @@ class VenvHelper(object):
         """
         Verify the version of python we found is at least 3.11
         """
-        version_text = self._execute( [ self.PROJ_PYTHON3_EXE, "--version" ])
+        version_text = self._execute( [ self.LOSTARM_PYTHON3_EXE, "--version" ])
         parts = version_text.split(' ')
         if len(parts) != 2:
             print("expected: Python: SEMVER, got: %s" % version_text )
@@ -324,13 +333,13 @@ class VenvHelper(object):
             So we use the name: 'requirements-PLATFORM.txt' instead.
         """
         fn_tmp = "requirements-%s.txt" % self.host_type()
-        dirname = os.path.join( str(self.PROJ_ROOT_DIR), "pip-modules" )
+        dirname = os.path.join( THIS_DIR, "pip-modules" )
         fn = os.path.join(dirname, fn_tmp )
         if not os.path.isfile( fn ):
             print("warning: missing %s" % fn)
             return
     
-        tmp = [ self.PROJ_PYTHON3_EXE, "-m", "pip", "install", "-r", fn ]
+        tmp = [ self.LOSTARM_PYTHON3_EXE, "-m", "pip", "install", "-r", fn ]
         here = os.getcwd()
         os.chdir( dirname )
         self._execute( tmp )
@@ -340,16 +349,17 @@ class VenvHelper(object):
     def create_venv( self ):
         if os.path.isdir( str(self.LOSTARM_VENV_DIR) ):
             shutil.rmtree( str(self.LOSTARM_VENV_DIR) )
-        self._execute( [self.PROJ_PYTHON3_EXE, "-m", "venv", self.LOSTARM_VENV_DIR] )
+        self._execute( [self.LOSTARM_PYTHON3_EXE, "-m", "venv", self.LOSTARM_VENV_DIR] )
         # the "str()" here makes pylance STFU otherwise these are not valid.
         self._update_python_exe()
         self._update_pythonpath()
         self._update_python_vars_XXX()
+        self._run_requirements()
         self._update_activate_script()
 
     def _update_python_exe( self ):
         """
-        Change our self.PROJ_PYTHON3_EXE to point at/into the VENV.
+        Change our self.LOSTARM_PYTHON3_EXE to point at/into the VENV.
         """
         ht = self.host_type()
         if ht in ("Linux", "Darwin"):
@@ -360,7 +370,7 @@ class VenvHelper(object):
         if not os.access( tmp, os.X_OK ):
             print("%s: is not executable!" % tmp )
             sys.exit(1)
-        self.PROJ_PYTHON3_EXE = tmp
+        self.LOSTARM_PYTHON3_EXE = tmp
 
     def _update_pythonpath(self):
         """
@@ -389,8 +399,9 @@ class VenvHelper(object):
             _find_and_replace( fn, findme % attname, value )
         if ht in ("Linux", "Darwin"):
             this_fn = str(self.PYTHON_VARS_SH)
+            print("Updating: %s" % this_fn )
             export_fmt = "export %s="
-            do_update( this_fn, export_fmt, "PROJ_PYTHON3_EXE" )
+            do_update( this_fn, export_fmt, "LOSTARM_PYTHON3_EXE" )
             do_update( this_fn, export_fmt, "PYTHONPATH")
             do_update( this_fn, export_fmt, "PYCHARM_PYTHONPATH" )
             if self.PROJ_VSCODE_EXE is not None:
@@ -402,7 +413,8 @@ class VenvHelper(object):
             # batch files use "set NAME=VALUE"
             set_var="set %s="
             this_fn = str(self.PYTHON_VARS_BAT)
-            do_update( this_fn, set_var, "PROJ_PYTHON3_EXE")
+            print("Updating: %s" % this_fn )
+            do_update( this_fn, set_var, "LOSTARM_PYTHON3_EXE")
             do_update( this_fn, set_var, "PYTHONPATH")
             do_update( this_fn, set_var, "PYCHARM_PYTHONPATH" )
             if self.PROJ_VSCODE_EXE is not None:
@@ -411,9 +423,10 @@ class VenvHelper(object):
                 do_update( this_fn, set_var, "PROJ_PYCHARM_EXE" )
 
             this_fn = str( self.PYTHON_VARS_PS1 )
+            print("Updating: %s" % this_fn )
             # PS1 files use "$env:NAME=VALUE"
             set_var = "$env:%s="
-            do_update( this_fn, set_var, "PROJ_PYTHON3_EXE" )
+            do_update( this_fn, set_var, "LOSTARM_PYTHON3_EXE" )
             do_update( this_fn, set_var, "PYTHONPATH")
             do_update( this_fn, set_var, "PYCHARM_PYTHONPATH" )
             if self.PROJ_VSCODE_EXE is not None:
@@ -443,6 +456,7 @@ class VenvHelper(object):
             if not found:
                 result.append("source %s" % self.PYTHON_VARS_SH)
             with open( self.ACTIVATE_SH, "wt" ) as f:
+                print("Updating: %s" %  self.ACTIVATE_SH )
                 f.write( "\n".join(result) )
                 f.write("\n")
             return
@@ -526,6 +540,7 @@ class VenvHelper(object):
         if ht in ("Linux", "Darwin"):
             fn = os.path.join(venv_dir, "bin", "proj_vscode.sh")
             with( open(fn, "wt") ) as f:
+                print("Creating: %s" % fn )
                 f.write("#! /bin/bash\n")
                 f.write("source %s\n" % self.PYTHON_VARS_SH )
                 if self.PROJ_VSCODE_EXE is None:
@@ -536,6 +551,7 @@ class VenvHelper(object):
                     f.write('exec %s "${@}"\n' % self.PROJ_VSCODE_EXE )
             fn = os.path.join( venv_dir, "bin", "proj_pycharm.sh" )
             with( open(fn, "wt") ) as f:
+                print("Creating: %s" % fn )
                 f.write("#! /bin/bash\n")
                 f.write("source %s\n" % self.PYTHON_VARS_SH )
                 if self.PROJ_PYCHARM_EXE is None:
@@ -547,6 +563,7 @@ class VenvHelper(object):
         assert( ht == 'Windows' )
         fn = os.path.join( venv_dir, "Scripts", "proj_vscode.bat" )
         with ( open(fn, "wt") ) as f:
+            print("Creating: %s" % fn )
             f.write("@echo off\n")
             f.write("call %s\n" % self.PYTHON_VARS_BAT )
             if self.PROJ_VSCODE_EXE is not None:
@@ -557,6 +574,7 @@ class VenvHelper(object):
 
         fn = os.path.join( venv_dir, "Scripts", "proj_pycharm.bat" )
         with ( open(fn, "wt") ) as f:
+            print("Creating: %s" % fn )
             f.write("@echo off\n")
             f.write("call %s\n" % self.PYTHON_VARS_BAT )
             if self.PROJ_PYCHARM_EXE is not None:
@@ -606,14 +624,14 @@ class VenvHelper(object):
         la_cfg['program']="${file}"
         la_cfg['console']="integratedTerminal"
         # Tell VS Code where Python is located
-        la_cfg['python'] = self.PROJ_PYTHON3_EXE
+        la_cfg['python'] = self.LOSTARM_PYTHON3_EXE
         # This lets us debug things in the python/modules directory.
         la_cfg['justMyCode']=False
         # No we do not do this
         #  la_cfg['cwd']=os.path.dirname( VSCODE_DIR )
         la_cfg['env'] = dict()
         la_cfg['env']['PYTHONPATH'] = self.PYTHONPATH
-        la_cfg['env']['PROJ_PYTHON3_EXE']=self.PROJ_PYTHON3_EXE
+        la_cfg['env']['LOSTARM_PYTHON3_EXE']=self.LOSTARM_PYTHON3_EXE
     
         # Make sure we have something to iterate over
         if 'configurations' not in data:
@@ -636,6 +654,7 @@ class VenvHelper(object):
         if not os.path.isdir( dname ):
             os.makedirs( dname )
         with open( self.VSCODE_LAUNCH_JSON, "wt" ) as f:
+            print("Updating: %s" % self.VSCODE_LAUNCH_JSON )
             f.write( json.dumps( data, indent=4 ) )
 
     def _vscode_spelling_words( self, modified : bool, data : dict) -> tuple[bool,dict]:
@@ -678,13 +697,13 @@ class VenvHelper(object):
             data = dict()
         assert( isinstance(data,dict))
         key="python.defaultInterpreterPath"
-        (modified, data) = _update_dict( modified, data, key, str(self.PROJ_PYTHON3_EXE) )
+        (modified, data) = _update_dict( modified, data, key, str(self.LOSTARM_PYTHON3_EXE) )
         key = "python.linting.pylintEnabled"
         (modified, data) = _update_dict( modified, data,key, True )
         key = 'python.linting.enabled'
         (modified, data) = _update_dict( modified,data,key,True)
         key = 'python.pythonPath'
-        (modified, data) = _update_dict( modified, data,key, str(self.PROJ_PYTHON3_EXE) )
+        (modified, data) = _update_dict( modified, data,key, str(self.LOSTARM_PYTHON3_EXE) )
         key = "python.analysis.extraPaths"
         (modified, data) = _update_dict( modified, data, key, [ self.MODULES_DIR ])
         key =   "python.analysis.typeCheckingMode"
@@ -716,7 +735,7 @@ def normal_main(argv :  list[str]):
 
 def debug_main( _ : list[str] ):
     # this is here for testing only under a debugger
-    os.environ[ "PROJ_PYTHON3_EXE"  ] = which_exe("python3")
+    os.environ[ "LOSTARM_PYTHON3_EXE"  ] = which_exe("python3")
     os.environ[ "PROJ_ROOT_DIR" ] = os.path.abspath("../..")
     tmp = os.path.join(os.environ['PROJ_ROOT_DIR'],".venv")
     main( [sys.argv[0],  tmp] )
