@@ -1,9 +1,15 @@
 import re
+import socket
 import sys
-
-# So functions in these work..
+import getpass
 import os
+import time
 
+from lostarm.utils import VerbosePrint
+
+__ALL__ = ['Variables', 'get_global_vars',
+    "VarError", "VarSyntaxError", "Var_UndefinedFunc", "Var_UndefinedVar",
+    "Var_RecursionError", "Var_DuplicateError"]
 
 def my_extension(s: str):
     parts = os.path.splitext(s)
@@ -121,37 +127,21 @@ class Var_RecursionError(VarError):
     example: ${A}->${B}->${A} endlessly.
     '''
 
-    def __init__(self, history: list):
+    def __init__(self, history: list[str]):
         VarError.__init__(self, VarError.RECURSION, "Recursive stop %d tries" % len(history), history)
 
 
-class Var_Duplicate(VarError):
+class Var_DuplicateError(VarError):
     '''
     Raised when defining a variable and it is a duplicate
     '''
 
-    def __init__(self, new_name, old_name):
+    def __init__(self, new_name : str, old_name : str, history : list[str] ):
         # One day, the new/old will have "where defined" attribute.
-        VarError.__init__(self, new_name.where, VarError.DUPLICATE,
-                          "Duplicate variable: %s" % new_name)
+        VarError.__init__(self, VarError.DUPLICATE,
+                          "Duplicate variable: %s" % new_name, history)
         self.new_name = new_name
         self.old_name = old_name
-
-class VariableValue(object):
-    """
-    A string with a filename and line number so you can print a usable error message
-    ie: "FOO" was defined in file BAR at line 42.
-    """
-    def __init__(self, value : str, filename=None, lineno = None ):
-        if not isinstance(value,str):
-            value = str(value)
-        self.value = value
-        self.filename = filename
-        self.lineno = lineno
-    def __str__(self):
-        return self.value
-
-
 
 # SIMPLE-MATCH:
 #   Match <LHS> ${ CONTENT } <RHS>
@@ -165,8 +155,13 @@ _re_function_call = re.compile(r'^(?P<fname>[a-zA-Z_][A-Z0-9a-z_.]*)[(](?P<param
 # used to determine if we have a VARNAME or FUNCTION_CALL
 _re_basic_name = re.compile(r'^[A-Za-z_][A-Za-z0-9_]*$')
 
+# These are variables we do not want the user to use.
+# The KEY is the bad (not-desired) name, the value is error message
+_bad_var_names = {
+    "__file__" : "Do not use ${__file__}, use ${__FILE__} instead"
+}
 
-class _resolver():
+class _resolver(VerbosePrint):
     '''
     This is the variable resolver.
     You don't use this directly, the Variable class uses this to resolve vars.
@@ -174,6 +169,7 @@ class _resolver():
     '''
 
     def __init__(self, parent, starting_text, vars: dict):
+        VerbosePrint.__init__(self)
         self._parent = parent
         self._vars = vars
         self.history = [starting_text]
@@ -188,6 +184,8 @@ class _resolver():
         '''
         Once a basic variable is found, this does the replacement.
         '''
+        if varname in _bad_var_names:
+            self.fatal("Sorry: %s" % _bad_var_names[ varname ] )
         if str(varname) not in self._vars:
             e = Var_UndefinedVar(varname, self.history)
             self._parent.fatal(e)
@@ -227,7 +225,7 @@ class _resolver():
         fname = func_match['fname']
         if fname not in func_table:
             raise Var_UndefinedFunc(fname, self.history)
-        entry = func_table.get(fname)
+        entry : dict = func_table.get(fname)
         param_list = self._get_params(fname, entry, func_match['params'])
         func_ptr = entry[0]
         result = func_ptr(*param_list)
@@ -290,7 +288,8 @@ class _resolver():
         raise Var_SyntaxError(self.history, text)
 
 
-class Variables():
+
+class Variables(VerbosePrint):
     '''
     This gives a crude "shell-like" text variables with some functions.
     Example:
@@ -300,35 +299,83 @@ class Variables():
     '''
 
     def __init__(self):
+        VerbosePrint.__init__(self)
         self._vars = dict()
-        self.just_exit = True
+        self._once_vars = dict()
 
-    def fatal(self, the_exception):
-        if self.just_exit:
-            print(str(the_exception))
-            sys.exit(1)
-        else:
-            raise the_exception
+    def add_default_vars(self):
+        self.add_variable( "CWD", os.getcwd() )
+        self.add_variable( "HOSTNAME", socket.gethostname() )
+        self.add_variable( "USER", getpass.getuser() )
+        tmp = os.path.abspath(sys.argv[0])
+        self.add_variable( "TOOL_ABS_PATH", tmp  )
+        self.add_variable( "TOOL_DIR", os.path.dirname( tmp ) )
+        self.add_variable( "UNIX_TIME", str(int(time.time())) )
+        self.add_variable( "CTIME", time.strftime("%c", time.localtime()) )
+
+    def reset(self):
+        self._vars = dict()
+
+    def items(self):
+        return self._vars.items()
+
+    def fatal(self, the_exception : Exception) -> None:
+        self.fatal_or_raise( the_exception )
 
     def replace(self, name, value):
         '''
         Replace the definition of this var.
         '''
+        if name in _bad_var_names:
+            raise Exception("Bad variable '%s' ->%s" % (name,_bad_var_names[name]))
+        assert( name not in self._once_vars )
         self._vars[name] = value
 
+    def add_variable_once(self, name, value ):
+        """
+        There are some variables we want set once and only once.
+        For example a ${TIME_NOW} variable contains the current time
+        in seconds. As the tool runs, the current time changes.
+        ie: 12:34:56 becomes 12:34:57...
+
+        And some other module might - during its initialization process
+        might choose to set the time again - we might not want that.
+
+        Thus, if you call add_variable_once( "TIME_NOW", value )
+        and something had already set the time you do not have
+        that drifting clock problem.
+
+        That is not always what we want.
+        """
+        if name in _bad_var_names:
+            raise Exception("Bad variable '%s' ->%s" % (name,_bad_var_names[name]))
+        if name in self._once_vars:
+            # Ignore a second time.
+            return
+        # do not repeat.
+        self._once_vars[name] = value
+        # and set the value of the variable.
+        if name not in self._vars:
+            self._vars[name] = value
+
     def add_variable(self, name : str, value :str ) -> None:
-        self.add( name,value )
-    def add(self, new_name : str, value : str) -> None:
-        if new_name in self._vars:
-            old = self._vars[new_name]
-            raise Var_Duplicate(new_name, old)
-        self.replace(new_name, value)
+        if name in self._vars:
+            old = self._vars[name]
+            raise Var_DuplicateError(name, old, [])
+        self.replace(name, value)
 
-    def add_dict(self, somedict):
-        for k, v in somedict.items():
-            self.add(k, v)
+    def resolve_all_vars(self):
+        for n,v in self._vars.items():
+            self.replace(n, self.resolve_text(v))
 
-    def resolve(self, text):
+    def add_dict(self, some_dict):
+        """
+        Given a dict of vars, ie: "name" : "value" add these.
+        """
+        for k, v in some_dict.items():
+            self.add_variable(k, v)
+
+    def resolve_text(self, text):
         '''
         Given text in the form: "hello ${planet}" perform var replacement.
         Also handles: "hello ${str.upper(${planet})}"
@@ -338,10 +385,29 @@ class Variables():
         while progress:
             (progress, text) = tmp.do_pass(text)
         return text
+    def save_as_dict(self):
+        """
+        this is used when we are saving state to a file
+        and need to preserve the vars and the OnceVars
+        """
+        result = dict()
+        result['VARS'] = self._vars.copy()
+        result['ONCE_VARS'] = self._once_vars.copy()
+        return result
+    def load_as_dict(self, data: dict) -> None:
+        """ 
+        Used in reverse of "save_as_dict" above.
+        """
+        if 'VARS' not in data:
+            self.fatal("Cannot load missing key: VARS")
+        if 'ONCE_VARS' not in data:
+            self.fatal("Cannot load missing key: ONCE_VARS")
+        self._vars = data['VARS'].copy()
+        self._once_vars = data['ONCE_VARS'].copy()
 
+# This provides a single common set of ${VARS}
+_global_vars = Variables()
 
-
-if __name__ == '__main__':
-    unit_test()
-    sys.exit(0)
+def get_global_vars() -> Variables:
+    return _global_vars
 

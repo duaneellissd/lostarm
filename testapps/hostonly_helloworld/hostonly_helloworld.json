@@ -1,0 +1,16 @@
+{
+    "PROJ_TYPE" : "app",
+    
+    "VARS" : {
+	  "FORCE_INCLUDE" : "${os.path.dirname(${__FILE__})}/include/hostonly-force-include.h"
+    },
+
+    "SOURCE_DIRS" : [
+	"src"
+    ],
+    
+    "INCLUDE_DIRS" : [
+	  "include"
+    ]
+}
+

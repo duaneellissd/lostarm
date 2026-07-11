@@ -371,6 +371,7 @@ class VenvHelper(object):
             print("%s: is not executable!" % tmp )
             sys.exit(1)
         self.LOSTARM_PYTHON3_EXE = tmp
+        self.PYCHARM_PYTHONPATH = tmp
 
     def _update_pythonpath(self):
         """
@@ -401,6 +402,7 @@ class VenvHelper(object):
             this_fn = str(self.PYTHON_VARS_SH)
             print("Updating: %s" % this_fn )
             export_fmt = "export %s="
+            do_update( this_fn, export_fmt, "PROJ_ROOT_DIR" )
             do_update( this_fn, export_fmt, "LOSTARM_PYTHON3_EXE" )
             do_update( this_fn, export_fmt, "PYTHONPATH")
             do_update( this_fn, export_fmt, "PYCHARM_PYTHONPATH" )
@@ -408,7 +410,7 @@ class VenvHelper(object):
                 do_update( this_fn, export_fmt, "PROJ_VSCODE_EXE" )
             if self.PROJ_PYCHARM_EXE is not None:
                 do_update( this_fn, export_fmt, "PROJ_PYCHARM_EXE" )
-
+            os.chmod( this_fn, 0o777 )
         elif ht == "Windows":
             # batch files use "set NAME=VALUE"
             set_var="set %s="
@@ -459,6 +461,8 @@ class VenvHelper(object):
                 print("Updating: %s" %  self.ACTIVATE_SH )
                 f.write( "\n".join(result) )
                 f.write("\n")
+            # make it executable
+            os.chmod( self.ACTIVATE_SH, 0o777)
             return
         assert( ht == "Windows")
         with open( self.ACTIVATE_BAT, "rt" ) as f:
@@ -549,6 +553,7 @@ class VenvHelper(object):
                     f.write("exit 1")
                 else:
                     f.write('exec %s "${@}"\n' % self.PROJ_VSCODE_EXE )
+            os.chmod( fn, 0o777 )
             fn = os.path.join( venv_dir, "bin", "proj_pycharm.sh" )
             with( open(fn, "wt") ) as f:
                 print("Creating: %s" % fn )
@@ -559,6 +564,7 @@ class VenvHelper(object):
                     f.write("Please set/export the variable: PROJ_PYCHARM_EXE")
                 else:
                     f.write('exec %s "${@}"\n' % self.PROJ_PYCHARM_EXE )
+            os.chmod( fn, 0o777 )
             return
         assert( ht == 'Windows' )
         fn = os.path.join( venv_dir, "Scripts", "proj_vscode.bat" )

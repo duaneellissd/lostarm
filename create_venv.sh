@@ -11,6 +11,7 @@ fi
 
 source ${PROJ_ROOT_DIR}/helper-scripts/bash/bash_common.sh
 
+rm -rf ${LOSTARM_VENV_DIR}
 
 bash ${PROJ_PYTHON_DIR}/create_venv.sh
 

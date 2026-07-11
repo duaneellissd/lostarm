@@ -1,0 +1,1 @@
+from lostarm.vstudio_tool.visual_studio import GenerateVisualStudio

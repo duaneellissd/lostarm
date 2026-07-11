@@ -19,7 +19,7 @@ then
     if [ "$PROJECT_SETTINGS_SH" == "$tmp" ]
     then
 	# Thats ok if the filenames are the same
-	printf "already sourced: $PROJECT_SETTINGS_SH"
+	printf "already sourced: $PROJECT_SETTINGS_SH\n"
 	return
     else
 	# then try to source a different one?"
@@ -27,6 +27,8 @@ then
 	printf "But does not match: %s\n" "$tmp"
 	exit 1
     fi
+else
+    printf "Sourcing: ${tmp}\n"
 fi
 
 export PROJECT_SETTINGS_SH="$tmp"
@@ -54,12 +56,15 @@ then
     echo "Missing: $tmp"
     exit 1
 fi
+echo "Source: ${tmp}"
 source "$tmp"
 
 provide_default PROJ_ROOT_DIR       "$PROJ_ROOT_DIR"
 provide_default HELPER_SCRIPTS_DIR "$HELPER_SCRIPTS_DIR"
 provide_default PROJ_PYTHON_DIR    "$HELPER_SCRIPTS_DIR/python"
 
-source ${PROJ_ROOT_DIR}/python_settings.sh
+tmp=${PROJ_ROOT_DIR}/python_settings.sh
+echo "Source: ${tmp}"
+source "$tmp"
 
 echo "END: ${BASH_SOURCE[0]}"
