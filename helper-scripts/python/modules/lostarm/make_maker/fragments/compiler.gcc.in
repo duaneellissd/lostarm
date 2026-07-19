@@ -1,0 +1,25 @@
+# -*- mode: Makefile -*-
+
+@MAKE_COMPILER_FLAVOR( gcc )@
+
+CFLAGS_cmdline_include_dirs = @CMDLINE_INCLUDE_DIRS@
+CXXFLAGS_cmdline_include_dirs = @CMDLINE_INCLUDE_DIRS@
+
+CFLAGS_cmdline_defines=@CMDLINE_DEFINES@
+CXXFLAGS_cmdline_defines=@CMDLINE_DEFINES@
+
+CFLAGS_cmdline_warnings=@CMDLINE_WARNINGS@
+CXXFLAGS_cmdline_warnings=@CMDLINE_WARNINGS@
+
+CFLAGS_cmdline_c_standard=@C_STANDARD@
+CXXFLAGS_cmdline_cxx_standard=@CXX_STANDARD@
+
+
+CFLAGS += \
+	${CFLAGS_cmdline_include_dirs} \
+	${CFLAGS_cmdline_defines}  \
+	${CFLAGS_cmdline_warnings} \
+	${CFLAGS_cmdline_c_standard}
+
+@MAKE_INCLUDE( compiler.gcc.rules.in )@
+

@@ -5,6 +5,11 @@
 	  "FORCE_INCLUDE" : "${os.path.dirname(${__FILE__})}/include/hostonly-force-include.h"
     },
 
+    "MAKEFILE" : {
+      "IN_MAKEFILE" : "./Makefile.host.in",
+      "OUT_MAKEFILE" : "./Makefile.host"
+    },
+
     "SOURCE_DIRS" : [
 	"src"
     ],

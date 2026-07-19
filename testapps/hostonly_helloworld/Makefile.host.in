@@ -1,0 +1,31 @@
+# -*- mode: Makefile -*-
+
+# Tell the template engine that comments are HASH type.
+@HASH_COMMENTS@
+
+@INCLUDE_MAK( compiler_gcc )@
+
+@COMPILER_FLAVOR(gcc)@
+
+CFLAGS_includes=@CMDLINE_INCLUDE_LIST@
+
+CFLAGS_defines=@CFLAGS_CMDLINE_DEFINES@
+CFLAGS_
+
+
+CFLAGS += ${CFLAGS_defines}
+CFLAGS += ${CFLAGS_cpu_flavor}
+CFLAGS += ${CFLAGS_warnings}
+CFLAGS += ${CFLAGS_cversion}
+
+CXXFLAGS += ${CXXFLAGS_defines}
+CXXFLAGS += ${CXXFLAGS
+
+COMPILE_c2i=${CC} ${CFLAGS} -E
+COMPILE_c2s=${CC} ${CFLAGS} -S
+COMPILE_c2o=${CC} ${CFLAGS} -c
+
+COMPILE_cxx2i=${CXX} ${CXXFLAGS} -E
+COMPILE_cxx2s=${CXX} ${CXXFLAGS} -S
+COMPILE_cxx2o=${CXX} ${CXXFLAGS} -c
+

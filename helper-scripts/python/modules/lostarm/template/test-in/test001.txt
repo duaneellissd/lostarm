@@ -1,0 +1,9 @@
+#
+@HASH_COMMENTS@
+
+@IF_NOT_DEFINED(NotDefinedThing)@
+@TEST_FAIL@
+@ELSE@
+@INCLUDE(test-foo-include.txt)@
+@ENDIF
+@TEST_SUCCESS@
