@@ -1,8 +1,9 @@
 from lostarm.utils.verbose_print import VerbosePrint
-from typing import NamedTuple
+from typing import NamedTuple, Any
+
 all_macros = dict()
 
-def TemplateMacro( NamedTuple ):
+class Macro( NamedTuple ):
     """
     For makefiles we often use a "macro".
     a Macro is defined as follows:
@@ -11,15 +12,31 @@ def TemplateMacro( NamedTuple ):
         @MACROEND(name)@
     This is that captured data.
     """
-    name : str
+    macro_name : str
     filename : str
     lineno : int
     lines : list[str]
 
+def all_macro_items():
+    return all_macros.items()
+
+def macro_exists( name : str ) -> bool:
+    return (name in all_macros)
+
+def get_macro(name: object) -> Macro:
+    """
+    Lookup and get this macro by name.
+    If it does not exist, it raises a KeyError
+    """
+    return all_macros[name]
+
 def remember_macro( name: str, fn : str, ln :int , lines : list[str] ):
-    old : TemplateMacro = all_macros.get(name, None)
+    if name in all_macros:
+        old = all_macros[name]
+    else:
+        old = None
     if old is None:
-        tmp = TemplateMacro(name=name, filename=fn, lineno=ln, lines=lines[:])
+        tmp = Macro(macro_name=name, filename=fn, lineno=ln, lines=lines[:])
         all_macros[name] = tmp
         return
     tmp = VerbosePrint()

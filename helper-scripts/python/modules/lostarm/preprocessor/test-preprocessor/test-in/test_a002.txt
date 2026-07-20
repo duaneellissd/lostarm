@@ -1,0 +1,15 @@
+This is a test of the include feature
+
+@INCLUDE( "include-same-dir.txt" )@
+
+This one should be found relative to this file */
+@INCLUDE( "relative-to/relative-file.txt" )@
+
+This one should be found via the search path
+@INCLUDE_ADD_SEARCH_DIR( "../other-search-dir" )@
+
+@INCLUDE( "in-other-dir.txt" )@
+
+Now a cascade of last lines
+
+@INCLUDE( "lastline-1.txt" )@

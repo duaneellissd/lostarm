@@ -1,5 +1,27 @@
 import sys
 
+_unit_test_mode = False
+
+def set_unit_test_mode():
+    """
+    See UnitTestException
+    """
+    global _unit_test_mode
+    _unit_test_mode = True
+
+class UnitTestException(Exception):
+    """
+    The normal action to a fatal syntax error is to exit the app.
+    That makes it really hard to write unit-tests for a parser.
+
+    So - have this instead
+    If UnitTestMode is set, then we raise this exception.
+    In the unit test - we catch this exception.
+    """
+    def __init__(self, msg ) -> None:
+        Exception.__init__(self,msg)
+
+
 def is_debugger_present():
     """
     This is a tool, so if a parse or logic error exists in the
@@ -89,11 +111,18 @@ class _DebugOutput(object):
                 sys.stdout.write('\n')
             sys.stdout.flush()
 
-    def fatal_or_raise(self, exception: Exception) -> None:
+    def unit_test_fatal(self, msg : str ) -> None:
+        if _unit_test_mode:
+            raise UnitTestException( msg )
         if is_debugger_present():
-            raise exception
+            # Raise in the debugger do not exit.
+            # makes it easier to debug things.
+            # PYCHARM captures the error nicely
+            # You can explore the stack backtrace in the debugger.
+            raise Exception(msg)
         else:
-            self.verbose_print(0, "Fatal: %s" % str(exception))
+            # Not in the debugger, print and exit..
+            self.verbose_print(0, msg)
         sys.exit(1)
 
 
@@ -124,10 +153,8 @@ class _DebugOutput(object):
         sys.exit(1)
 
     def fatal_here(self, filename: str, lineno: int, msg: str) -> None:
-        self.verbose_print(0, "%s:%d Fatal: %s" % (filename, lineno, msg))
-        if is_debugger_present():
-            raise Exception("Bang - fatal")
-        sys.exit(1)
+        msg = "%s:%d Fatal: %s" % (filename, lineno, msg)
+        self.unit_test_fatal(msg)
 
 
 _debug_output = _DebugOutput()

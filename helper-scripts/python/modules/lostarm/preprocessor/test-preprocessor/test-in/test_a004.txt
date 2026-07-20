@@ -1,0 +1,32 @@
+
+This tests various error cases with include
+
+_NEXT_LINE_FAILS_
+Crap at start: @INCLUDE( somename )@
+
+_NEXT_LINE_FAILS_
+@INCLUDE( somename )@ crap at end.
+
+_NEXT_LINE_FAILS_
+@INCLUDE( "bad-quotes )@
+
+_NEXT_LINE_FAILS_
+@INCLUDE( "missing-close"
+
+_NEXT_LINE_FAILS_
+@INCLUDE( "with-comment" )@ bad-text here
+
+_NEXT_LINE_FAILS_
+@INCLUDE_GARBAGE_NAME_HERE( blah balh )@
+
+_NEXT_LINE_FAILS_
+@INCLUDE_ADD_SEARCH_DIR( some-non-existing-directory )@
+
+_NEXT_LINE_FAILS_
+@INCLUDE( internal-"-quotes )@
+
+_NEXT_LINE_FAILS_
+@INCLUDE( non-existing-file )@
+
+_SKIP_NEXT_LINE_
+This line should be skipped.

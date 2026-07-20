@@ -21,7 +21,7 @@ Example:
 
 """
 import os
-from lostarm.template.template_macro import TemplateMacro
+from lostarm.input_file.macro import Macro
 from lostarm.utils.verbose_print import VerbosePrint
 
 class InputFile( VerbosePrint ):
@@ -53,19 +53,23 @@ class InputFile( VerbosePrint ):
         tmp : list[str] = []
         with open( filename, "rt") as f:
            tmp = f.readlines()
+        last_line = ""
         for this_line in tmp:
-            this_line = this_line.rstrip()
+            last_line = this_line
             result.lines.append(this_line)
+        # complain if the last line does not end with a terminal newline.
+        if not last_line.endswith('\n'):
+            result.verbose_print(0,"%s:%d: Missing terminal new line" % (filename, len(result.lines)))
         return result
 
     @staticmethod
-    def from_macro(self, macro : TemplateMacro ) -> "InputFile":
+    def from_macro( macro : "Macro" ) -> "InputFile":
         """
         When an input macro is invoked we create a quasi-fake include file
         """
         result = InputFile()
         result.is_macro = True
-        result.macro_name = macro.name
+        result.macro_name = macro.macro_name
         result._filename = macro.filename
         result.lineno = macro.lineno
         result.lines = macro.lines[:]

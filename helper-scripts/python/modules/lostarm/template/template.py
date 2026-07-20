@@ -3,7 +3,7 @@ import os
 import typing
 from lostarm.utils import VerbosePrint
 from lostarm.variables import get_global_vars
-from lostarm.template.input_file import InputFile
+from lostarm.input_file import InputFile
 import unittest
 import filecmp
 

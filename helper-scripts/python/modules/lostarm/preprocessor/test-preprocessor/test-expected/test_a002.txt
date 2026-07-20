@@ -1,0 +1,20 @@
+test_a002.txt:1->This is a test of the include feature
+test_a002.txt:2->
+include-same-dir.txt:1->
+include-same-dir.txt:2->Some file in the same directory
+include-same-dir.txt:3->used to test the INCLUDE feature.
+test_a002.txt:4->
+test_a002.txt:5->This one should be found relative to this file */
+relative-file.txt:1->This file is in a relative directory
+relative-file.txt:2->
+second-relative.txt:1->A file with one line.
+test_a002.txt:7->
+test_a002.txt:8->This one should be found via the search path
+test_a002.txt:10->
+in-other-dir.txt:1->This is a file in the other directory
+in-other-dir.txt:2->it is only searchable via the search path.
+in-other-dir.txt:3->
+test_a002.txt:12->
+test_a002.txt:13->Now a cascade of last lines
+test_a002.txt:14->
+lastline-1.txt:1->This is the oneline file.
