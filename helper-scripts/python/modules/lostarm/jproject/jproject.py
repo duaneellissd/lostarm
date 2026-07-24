@@ -145,7 +145,7 @@ class Jproject(VerbosePrint):
         """
         handles push/pop for the INCLUDE_JSON statement
         """
-        self.fatal_where_push( new_filename, 1 )
+        self.fatal_set_filename( new_filename, 1 )
         self._include_stack.append( (self._cur_json_filename, self._cur_lineno) )
         if len( self._include_stack ) > 50:
             # this just an arbitrary reasonable limit
@@ -191,7 +191,7 @@ class Jproject(VerbosePrint):
         """
         self._json_data = dict()
         self._include_stack = []
-        self._cur_json_filename = os.path.abspath(filename)
+
         if not os.path.isfile(filename):
             self.not_fatal("cwd: %s" % os.getcwd())
             self.fatal("%s: No such file or directory" % filename )
@@ -221,7 +221,7 @@ class Jproject(VerbosePrint):
         for k,v in data_to_merge.items():
             # this function handles any unique ways we need to merge keys.
             if k == KEYS.VARS:
-                # Handled above
+                # Handled above/previously
                 continue
             self._merge_this_key( k, v )
 
@@ -235,7 +235,7 @@ class Jproject(VerbosePrint):
         #          attempt to locate: self._handle_FOO
         # STEP 3 - If this exists, we call that function.
         # STEP 4 - If not we merge it as a normal key.
-        tmp = "_handle_%s" % keyname
+        tmp = "handle_%s" % keyname
         callable = None #assume not found
         try:
             callable = self.__getattribute__( tmp )
@@ -426,7 +426,7 @@ class Jproject(VerbosePrint):
         self._merge_generic_DIRS( keyname, value, self._validate_INCLUDE_DIRS )
 
 
-    def _handle_VARS(self, keyname : str, value : (dict|str)) -> None:
+    def handle_VARS(self, keyname : str, value : (dict|str)) -> None:
         if not isinstance( value, dict ):
             self.fatal_here("VARS key is not a dict: %s" % str(value))
         # We need to resolve all the incomming variables
@@ -436,13 +436,13 @@ class Jproject(VerbosePrint):
     def resolve_text(self, text ):
         return self._shell_vars.resolve_text( text );
 
-    def _handle_SOURCE_DIRS(self, keyname, value ):
+    def handle_SOURCE_DIRS(self, keyname, value ):
         """
          For an example: see: self.default_src_dict
         """
         self._merge_generic_DIRS( keyname, value, self._validate_SOURCE_DIRS )
      
-    def _handle_INCLUDE_DIRS(self, keyname : str, value : (dict|str)) -> None:
+    def handle_INCLUDE_DIRS(self, keyname : str, value : (dict|str)) -> None:
         # include directories are compiler command line -I dirname types.
         # These can be a simple list of strings [dir names]
         # or something more complex with excludes etc.

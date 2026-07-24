@@ -35,6 +35,7 @@ def case1():
     args.extend( ["-D", 'PROJ_ROOT_DIR=${CWD}'] )
     args.extend( ["--root-proj", "testapps/hostonly_helloworld/hostonly_helloworld.json"] )
     args.extend( ["--out-dir", "./outdir" ])
+    args.extend( ["--output", "Makefile" ])
     main( args )
 
 if __name__ == "__main__":

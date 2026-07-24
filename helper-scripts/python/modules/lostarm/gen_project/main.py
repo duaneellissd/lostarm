@@ -41,6 +41,7 @@ class GenProjectMain(VerbosePrint, ABC):
                          help="output file to be generated")
         self.args = ap.parse_args(arg_list)
         if len( self.args.OUT_TYPE ) == 0:
+            ap.print_usage()
             self.fatal("No Output project types where specified")
 
         self.args.ROOT_JSON = os.path.abspath( self.args.ROOT_JSON )
@@ -56,9 +57,9 @@ class GenProjectMain(VerbosePrint, ABC):
             else:
                 n,v = var.split("=",1)
                 self._shell_vars.add_variable( n,v )
-        self.fatal_where_push("command-line", 1 )
+        self.fatal_set_filename("command-line", 1 )
         self._shell_vars.resolve_all_vars()
-        self.fatal_where_pop()
+
 
     def load_root_project(self) -> None:
         """
