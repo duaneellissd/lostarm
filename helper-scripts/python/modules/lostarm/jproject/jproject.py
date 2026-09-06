@@ -1,6 +1,6 @@
-import json
 import os
 import sys
+import typing
 __ALL__=['Jproject']
 
 from jproject.keys import *
@@ -157,7 +157,6 @@ class Jproject(VerbosePrint):
         """
         Remove an entry from the include stack
         """
-        self.fatal_where_pop()
         (self._cur_json_filename, self._cur_lineno) = self._include_stack.pop()
         self._shell_vars.replace( "__FILE__", self._cur_json_filename )
 
@@ -264,7 +263,43 @@ class Jproject(VerbosePrint):
         # We do not know how to handle it we are dead.
         self.fatal_here("Unknown key: %s" % keyname )
 
-    def handle_PROJ_TYPE(self, keyname: str, value: str ):
+    def handle_generic_dict(self, keyname : str, value: typing.Any ) -> None:
+        if not isinstance( value, dict ):
+            self.verbose_print(0,"key: %s, expected DICT found: %s" % (keyname,value ) )
+        d = self._json_data
+        if keyname not in d:
+            d[ keyname ] = {}
+        for k,v in value.items():
+            if k not in d:
+                d[k] = v
+                continue
+            old = d[k]
+            if old != v:
+                # WE cannot handle mismatched vars.
+                self.fatal_here("Duplicate %s key %s=%s, old=%s" % (keyname,k,v,old))
+            # same key, same value ignore.
+            continue
+
+    def handle_MAKEFILE(self, keyname: str , value: typing.Any ) -> None:
+        """
+        makefiles may have their own set of additional things unique to a makefile
+        just like a VISUAL STUDIO project, or an XCODE, or Eclipse project.
+        So we treat these a dict with extra stuff.
+        """
+        self.handle_generic_dict( keyname, value )
+    def handle_ECLIPSE(self, keyname : str, value: typing.Any ) -> None:
+        """ Same comment as: handle_MAKEFILE"""
+        self.handle_generic_dict( keyname, value )
+
+    def handle_VISUALSTUDIO(self, keyname: str, value: typing.Any) -> None:
+        """ Same comment as: handle_MAKEFILE"""
+        self.handle_generic_dict(keyname, value)
+
+    def handle_XCODE(self, keyname: str, value: typing.Any) -> None:
+        """ Same comment as: handle_MAKEFILE"""
+        self.handle_generic_dict(keyname, value)
+
+    def handle_PROJ_TYPE(self, keyname: str, value: str ) -> None:
         if len(self._include_stack) == 1:
             # We are in the top most [root] JSON file
             self._merge_key_string( keyname, value )
@@ -450,7 +485,17 @@ class Jproject(VerbosePrint):
         # the Visual Studio "Headers" Filter
         # and not list other headers in the filter.
         self._merge_generic_DIRS( keyname, value, self._validate_INCLUDE_DIRS )
-  
+
+    def save_as_json(self, filename :str) -> None:
+        filename = os.path.abspath(filename)
+        dir_name = os.path.dirname(filename)
+        if not os.path.isdir(dir_name):
+            os.makedirs(dir_name)
+        safe_json_save( filename, self._json_data )
+
+    def load_processed_json(self, filename :str) -> None:
+        self._json_data = safe_json_load(filename)
+
 
     
 

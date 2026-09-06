@@ -1,14 +1,17 @@
 #! /bin/bash
+[[ -n ${LOSTARM_GUARD_PYTHON_SETTINGS_SH:-} ]] && return
+export LOSTARM_GUARD_PYTHON_SETTINGS_SH=1
 
-if [ "$LOSTARM_PYTHON_EXE" == "" ]
-then
-	echo "LOSTARM_PYTHON_EXE is not defined it is required"
-	exit 1
-fi
+# die on error.
+set -e
 
-if [ "$LOSTARM_VENV_DIR" == "" ]
-then
-	echo "LOSTARM_VENV_DIR is not defined it is required"
-	exit 1
-fi
+# Where is this script?
+tmp=`realpath ${BASH_SOURCE[0]}`
+tmp=`dirname ${tmp}`
+
+# get the bash helpers
+source ${tmp}/bash/bash-helpers.sh
+
+must_be_exe LOSTARM_PYTHON_EXE
+must_be_defined LOSTARM_VENV_DIR
 

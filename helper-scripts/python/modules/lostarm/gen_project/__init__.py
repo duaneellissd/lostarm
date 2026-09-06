@@ -1,1 +1,1 @@
-from lostarm.gen_project.main import GenProjectMain
+from lostarm.gen_project.expander import ExpandJsonProject

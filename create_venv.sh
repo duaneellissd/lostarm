@@ -13,6 +13,6 @@ source ${PROJ_ROOT_DIR}/helper-scripts/bash/bash_common.sh
 
 rm -rf ${LOSTARM_VENV_DIR}
 
-bash ${PROJ_PYTHON_DIR}/create_venv.sh
+bash ${LOSTARM_PYTHON_DIR}/create_venv.sh
 
 echo "END: ${BASH_SOURCE[0]}"

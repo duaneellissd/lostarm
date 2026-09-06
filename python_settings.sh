@@ -1,25 +1,53 @@
 #! /bin/bash
 # The intent is you source this file when you wish to use python.
 # and want to setup a VENV
-echo "BEGIN: ${BASH_SOURCE[0]}"
 
-if [ "$PROJECT_SETTINGS_SH" == "" ]
+case "${LOSTARM_VERBOSE}" in
+    "true" | "false")
+	echo "all is well" >> /dev/null
+	;;
+    *)
+	# default to false
+	export LOSTARM_VERBOSE=false
+	;;
+esac
+    
+if [ x"$1" == x"-v" ]
 then
-    printf "Sorry, something is wrong\n"
-    printf "Did you source 'project_settings.sh' yet?\n"
+    # remove the -v
+    shift
+    export LOSTARM_VERBOSE=true
+fi
+
+# Detect DOUBLE inclusion and WRONG inclusion.
+
+# Where is this file?
+this_file=`realpath ${BASH_SOURCE[0]}`
+if [ x"${LOSTARM_GUARD_PYTHON_SETTINGS_SH}" == "${this_file}" ]
+then
+    # All is well, we are being included a second time.
+    if $L
+
+tmp_dn=`dirname  $tmp`
+tmp_bn=`basename $tmp`
+# Use the existing PROJ_ROOT_DIR.. it should be defined by now.
+# And construct where we expect to find *THIS* file.
+test_file="${PROJ_ROOT_DIR}/${tmp_bn}"
+if [ x"${this_file}" != x"${test_file}" ]
+then
+    # This can happen if you have two copies of the project.
+    # Copy (A) in directory (A)...
+    #    And you have sourced the scripts in Directory(A)
+    # Copy (B) in directory (B)
+    #    And now you are sourcing scripts in THIS directory
+    # The Variables are sort of mixed up and wrong.
+    printf "Something is wrong...\n"
+    printf "EXPECTED: %s\n" "${test_file}"
+    printf "  ACTUAL: %s\n" "${this_file}"
+    # So stop this NOW, do not proceed.
     exit 1
 fi
 
-# this file
-tmp1="$PROJ_ROOT_DIR/python_settings.sh"
-tmp2=`realpath ${BASH_SOURCE[0]}`
-if [ "$tmp1" != "$tmp2" ]
-then
-    echo "Something seems wrong"
-    echo "tmp1=$tmp1"
-    echo "tmp2=$tmp2"
-    exit 1
-fi
 
 
 if [ "$PYTHON_SETTINGS_SH" == "$tmp1" ]

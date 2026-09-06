@@ -18,7 +18,7 @@ def register_generator( klass : "GeneratorCore" ):
     tmp.fatal("%s already registered" % name)
 
 def get_generator(name: str) -> "GeneratorCore":
-    cls = _all_generators.get(name)
+    cls = _all_generators.get(name,None)
     if cls is None:
         tmp = VerbosePrint()
         tmp.verbose_print(0, "Generator: %s not registered" % name)
