@@ -1,168 +1,213 @@
-# This is all about how this PROJECT sets up and uses Python.
+# This is all about how this PROJECT uses Python
 
 ## To define some variables
 
-Please see: ${GIT_ROOT_DIR}/ENV_VARS.md
+The variable: PROJ_ROOT_DIR is also known as GIT_ROOT_DIR, this is the top most directory in the project, it is where your ".git" directory is located.  We do not use GIT_ROOT_DIR as any variable in any script. We only use GIT_ROOT_DIR to explain in documentation a reference point.
 
-PROJ_ROOT_DIR - see ${GIT_ROOT_DIR}/README.md
+There are many other Env Variables, they are described here:
 
-LOSTARM_P
-LOSTARM_PYTHON_DIR - normally: ${PROJ_ROOT_DIR}/
-LOSTARM_PYTHON_VENV_DIR - normally: ${PROJ_ROOT_DIR}/.venv
-    s where we create our python Venv.
-       this is normally ${PROJ_ROOT_DIR}/.venv
-    LOSTARM_PYTHON_HELPER_DIR - is where we have more python things.
-    
-    ```
+    `${PROJ_ROOT_DIR}/docs/ENV_VARS.md`
 
-## Commentary Why does this exist?
+### **`LOSTARM_PYTHON_EXE`**
+
+1. This package uses python extensively. And there are various problems with PYTHON in your path. (Described below).
+2. Thus we do not (on purpose) use the PYTHON application from your path (Reasons are described below). This must always resolve to an executable file that is Python.
+3. On a windows platform that means: `python.exe`
+4. On Linux/Mac it is the 'python' you wish to use, in some cases it might be a shell script that undoes the nastiness forced upon you by various IDEs you might be using (Described below in more detail).
+
+### **`LOSTARM_PYTHON_DIR`**
+
+1. Most often this is `${PROJ_ROOT_DIR}/helper-scripts/python`
+2. There are various internal "python modules" that we do not install, and other python things. All of these things are stored in that directory.
+3. These modules can be found here `${LOSTARM_PYTHON_DIR}/modules`
+
+### **`LOSTARM_PYTHON_VENV_DIR`**
+
+1. Most often it is: `${PROJ_ROOT_DIR}/.venv`
+2. This is where we will create and use our Python Virtual Environment.
+3. You should also know about the
+
+## This sounds stupid, why are you doing this?
+
+### Welcome to DLL HELL
 
 At this point in Pythons life it has reached the old "DLL HELL"
 problem that early Microsoft Windows users had/have.
 
-By that I mean - each thing has its own version of python
-and that version of Python has its own crap it comes with.
+Details here: [DLL HELL](https://en.wikipedia.org/wiki/DLL_hell)
 
-And they are all incompatible with each other.
+Numerous engineering tools now offer Python Support. Most often, the tool has some scheme to provide a loadable binary Python Module. And that is the problem.
 
-Example: I do most of my development on my x86 MACBOOK
-	 How many versions of Python do I have?
-	 /Library/Python/2.7
-	 /Library/Python/3.7
-	 /Library/Python/3.9
-	 /Applications/ti/ccs2002/.../python3
+### Historically Python did not have a strong and stable Binary API
 
-Example: On Linux
-	 There is the system version of Python.
-	 My Xilinx tools have their private version of Python.
-	 My Microchip/MicroSemi has its private version of Python.
+Part 1: Python generally does not have a stable binary API at the C language interface level.
 
-Example: On Windows:
-	 i have the 'company approved version'
-	 I have the one that came from Xilinx
-	 And the one from Microchip/MicroSemi.
-	 And the one built into Microsoft Excell.
+Details here: [Python C ABI](https://docs.python.org/3/c-api/stable.html)
 
-In many cases, these other tools have/need/require a binary interface
-to python, and that is a problem.  The biggest example is GDB comes
-with Python plugins now for over 10 years.
+Part 2: Each tool vendor that embeds Python support must (1) choose some specific python release to use, and (2) That vendor also chooses a release schedule or cadence for the next version or release of their tooling.
 
-BUT which binary version of Python was used for that feature? And for
-my other tasks & needs that other host tool is required and that requires
-that tools private version of Python. Grrr!
+Part 3: With 5 different vendors, you have 10 different answers.
 
-Why can't these vendors use the default version of Python?  Or some
-other version of python? For a software IDE it is important that it
-works.  And to get GDB_PY to work, you require the matching Python
-Binary it was compiled and linked against.
+**Question:** Do you think they will all agree? If one of those vendors did not do the right thing, who is going to figure out the work around? And does that mean with 5 vendors you quite possibly need 5 different workarounds?
 
-To solve that vendors include their private copy of python.  And each
-of those vendors are on a seperate release schedule and cadence.  That
-is a problem and makes it really hard.
+## Reality raises its ugly head and says Hello
 
-## BUT that is what a PYTHON VENV was designed for..
+**I do not have time for that** nor do you. I need a solution that I can force to work in an easy way across all vendors. This approach has worked well for the last 8-10 years so I am sticking with it. Perhaps you have a better solution, I'd love a better solution that works uniformly across all IDEs that I want to support.
 
-Yea, please explain to these vendors that their launch scripts
-shall *NOT* override various PYTHON variables.
+## How many versions of Python do I have/face today?
 
-## Oh and how does your Python IDE find which version of python to use?
+And they are all incompatible with each other. My hosts are: x86 MACBOOK, Ubuntu Linux (VM on my MACBOOK), Win11 (VM On my MACBOOK), Physical x86 UBUNTU Linux Box (runs my CI/CD jobs)
 
-## And where does the IDE's Language Server find these modules?
+### As of this writing
 
-VSCODE uses the ${PROJ_ROOT_DIR}/.vscode directory.
+1. Today is: 7-sep-2026
+2. Python 3.15orc2 is scheduled for 1-oct-2026
 
-PYCHARM uses an environment variable called PYTHONPATH Damn them they
-should use PYCHARM_PYTHON_PATH or something unique to them but they do not.
+### My MACBOOK has
 
-## My solution is in several parts.
+1. /Library/Python/2.7
+2. /Library/Python/3.7
+3. /Library/Python/3.9
+4. /Applications/ti/ccs2002/.../python3
 
-### PART 1:
+### Linux Has
 
-    DO NOT Ever use the PATH version of PYTHON.
-    in stead, we require a UNIQUE variable LOSTARM_PYTHON_EXE
-    This must exist and point to the version of python to use.
-    If it does not exist, we die with a nasty error.
+1. The system version of Python.
+2. The Xilinx tools have their private version of Python (V3.8)
+3. The Microchip/MicroSemi has its private version of Python.
 
-    We could continue on and let it die later when something goes wrong.
-    No - done enough customer/developer support to not want to do more.
-    so if it does not seem correct, we die with a non-zero exit.
+### Windows
 
-### PART 2:
+1. Newer versions of Excel support Python, I wonder what version?
+2. I have a separate general install of Python 3.12
+3. The windows version of Xilinx
+4. The Windows version of Microchip/MicroSemi SoftConsole
+5. TI Code Composer Studio
+6. Standalone Eclipse CDT setup with arm-none-eabi (with Python GDB)
 
-    Yes, we do create our own PYTHON Virtual Environment.
-    Grep various files for "LOSTARM_PYTHON_VENV_DIR" for details.
+So - 13 different Python variants, this is going to be fun.
 
-### PART 3:
+You probably need exactly one combination and don't care about the other 12
 
-    Where possible Avoid Python Modules, Avoid PIP
-    Really there are only a few really useful ones.
+## What other vendors do
 
-### Part 4:
+Often vendors solve this by including a private copy of Python with the tool you downloaded. They can sometimes support that version and nothing else.
 
-    For my DAY $JOB$ I work in a very high security place.
-    I have zero internet access, and I cannot bring thumb drives in.
+If you want to use something else you are on your own. We need to take the same approach.
 
-    Solution: include copies of all python modules in the project.
-    Generally they are small and simple. I will simply reject things
-    that are not small and simple add ons.
+We do not want to perform **surgery** on each of these Tool Chains, we do not have enough bandwidth to support every possible combination and permutation.
 
-    These are stored in ${LOSTARM_PYTHON_HELPER_DIR}/modules/pip-modules
+## BUT that is what a PYTHON VENV was designed for
+
+Exactly. The way PYTHON VENV works is by way of SHELL Environment variables and it works great.
+
+Then you launch the vendors tool (sometimes via a helper script) and that script will change all of these ENV variables. For example it changes the PATH variable to put their version of Python at the front of the line. The IDE then launches some pre/post build script and nothing works any more.
+
+Hence, our scripts do not use PYTHON in your PATH and instead make use of `${LOSTARM_PYTHON_EXE}` to launch python.
+
+## Our solution is in several parts
+
+### PART 1 - Avoid the PATH
+
+DO NOT Ever use the `PATH` version of PYTHON. In stead, we require a UNIQUE variable `LOSTARM_PYTHON_EXE`. This must exist and point to the version of python to use. If it does not exist, we die with a nasty error.
+
+Do not issue Warnings, DIE with a HUMAN useful error message.
+
+### Part 2 - We assume a basic PYTHON 3 level standard library only, avoid Modules
+
+Some of us work in environments where getting things installed is a giant ordeal. A wise man
+once told me:
+
+>> The requirement costs to ante up with Classified Poker is not cheap, but the jack pot is huge", and they are paying for that requirement, so let them pay.
+
+That generally reflects on some of the security requirements and thus cost problems with the US Defense programs.
+
+### Part 2 - No PYTHON VOMIT
+
+The PYTHONIC way is often to raise an exception and let it die or exit if the exception is not caught. That is acceptable in some places, and is not acceptable in other places.
+
+Our view: A Python Exception is a lot like a seg-fault, with a stack trace.  
+
+When your C++ compiler finds an error and must bail out, do you expect the TOOL to seg-fault with a stack trace? Or do you expect a usable and human friendly error message.
+
+As one example: This tool uses human edited JSON files to configure things. How many typos do you think will occur or be created as you tweak and use this TOOL? We know that answer is every day, all day, always.
+
+If Python VOMIT occurs it must only occur where there is a true internal error that was not expected. But general everyday errors a normal developer might cause/create **SHALL-NOT-EVER** produce PYTHON VOMIT.
+
+This is important because often some NCG (New College Grad, or wet-behind-the-ears Engineer) has no clue how to figure out if the problem is (A) some python error or (B) their own syntax error. And remember that very senior engineer with 40+ years of experience looking at your complex tool (This very tool) is effectively a NCG.
+
+### Part 3 - To Paraphrase SHAKESPEARE: to VOMIT or not to VOMIT that is the question
+
+Today, many of use use an IDE with a mouse, or a text based tool (Like VIM) and can turn on error plugins. With that plugin in you can select the error and go directly to the offending file.
+
+1. OPTION 1 Should the error link take you deep within the bowels of a PYTHON MODULE?
+2. OPTION 2 Take me to the source code file with the issue?
+
+We choose Option 2.
+
+### Part 4 our `${LOSTARM_PYTHON_VENV_DIR}`
+
+Yes, we do create our own PYTHON Virtual Environment.
+
+We do install a few HELPFUL Python Modules via PIP, but only a few.
+
+More later.
+
+### Part 5 Our own Python Modules
+
+We have developed some of our own Python Modules, but they are not yet "PIP installable" and probably will never become part of PyPy - because they are so specific to this domain problem and are not general purpose.
+
+BUT yet, we wish to use these as a module.
+
+1. Option 1 - We install our modules into our VENV dir.
+2. Option 2 - We do not install our modules into our VENV dir.
+
+**Today:** This is also a new/young tool - and we are always adding, improving, extending our internal modules. We do that from within our IDE, we let the IDE debugger step into the module source code.
+
+Installing our module into the VENV is possible, and as you edit/tweak/improve you are doing so in a COPY of the module.  You must then sync your changes back into the copy in the GIT directory.
+
+So we choose **Option 2** - and tell Python via the env variable `PYTHONPATH` where to find the additional modules.
+
+### Part 6 - The PIP Modules we do use
+
+1. Option 1 - Have PIP to fetch these from the internet in the standard way.
+
+2. Option 2 - Keep a private "cached copy" of the modules in the repo.
+
+We choose Option 2 - but that has some complications to address.
+
+1. Preference #1 - always use WHEEL (WHL) modules they are universal.
+
+2. Preference #2 - Use separate `requirements.txt` files
+
+Many modules have WHL files, some do not.  Python Cryptography and a few others have binary components. So what we actually have and use are 2 different `requirements.txt` files.
+
+1. The Generic: `requirements-generic.txt` and
+2. The `requirements-macos.txt` file, and a windows and linux one too.
+
+When we build/create the VENV, we install the generic one first, then we install the host specific one next.
+
+**NOTE:** Another trick is to list the requirements in some install order. If Module C requires B and B requires A, then install A first, then B, then C.
+
+The `requirements.txt` files are located here:
+
+    `${LOSTARM_PYTHON_HELPER_DIR}/modules/pip-modules`
     
+## Using Other IDEs, Related ENV Vars
 
-### Part 5:
+What we do not know today as we write this, and as you read this is the following: What IDE are you going to use?  Do you want to understand
+our PYTHON work? Or just use it.
 
-    I also work on multiple machines, Mac, Windows, Linux.  Many
-    python modules come as "wheel" (WHL) files. Which are universal.
+other tools:
 
-    BUT - sometimes you require the binaries, ie: 'cryptography'
+1. Pycharm - `${LOSTARM_PYCHARM_EXE}`
+2. VS CODE - `${LOSTARM_VSCODE_EXE}`
+3. VisualStudio - `${LOSTARM_VISUALSTUDIO_EXE}` community edition.
 
-###
-    So - where possible I include
-    all PYTHON Modules in the python helper directory.
-    I prefer the WHL files as they are universal across all platforms.
-    
-    HOWEVER some things are binary, ie: Python crypto library.
+These should resolve to the means to launch your instance of the tool
 
-    So in the ${PY
-    Always prefer the Python standard Library for everything.
-   Sadly, Modules & Pip are too much to ask.
+If these are set, we attempt to create a useful bash shell script to launch the IDE with knowledge of the `${PYTHONPATH}` and the VENV we create.
 
+* `lostarm_pycharm.sh`
+* `lostarm_vscode.sh`
 
-   
-   Where possible write all python to use only the python standard lib.
-   There are a few execptions
-
-Do you think all of these are compatible with each other?
-Yea, partly they are, and partly they are not.
-
-But this is solved by "Virtual Environments" yea sort of.  Each of
-those damn tools say NO you shall use our virtual environment.
-
-## Sadly - we do the same..
-
-To help with this, we do the following:
-
-We make use of this Environment Variable.
-
-   [For details see docs/development_environment.md](docs/development_environment.md)
-
-```bash
-   export LOSTARM_PYTHON3_EXE=/path/to/your/python.exe
-
-   # Most often this is just export LOSTARM_PYTHON3_EXE=`which python3`
-   # But sometimes it needs to be a different python.
-```
-
-## We do create a virtual environment (VENV)
-
-   By default, we place this in the directory LOSTARM_VENV_DIR Which is
-   normally located, here the default value is:
-
-   	    LOSTARM__VENV_DIR=${PROJ_ROOT_DIR}/.venv
-
-   And we do install packages into the VENV.
-
-## When the VENV is created, we create two bat/shell scripts.
-
-   
-   
