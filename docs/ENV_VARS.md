@@ -1,42 +1,85 @@
 # These are the ENV Vars, and a road map to many things.
 
+## Typography rules:
+
+### Rule #1 - CAPS_SNAKE_CASE
+
+* CAPS_SNAKE_CASE is for exported shell ENV vars.
+* lower_snake_case is for non-exported shell vars.
+
+### Rule #2 - Things ending with _DIR
+
+* Any var that end in _DIR is a directory.
+* Under Microsoft rules - (visual studio) - these include a terminal slash.
+* Under OUR rules, these do not include a terminal slash.
+* And - we predomently use UNIX slashes for reasons of "quoting things".
+
+* See below about things ending with _PY, _SH, _MAK, etc.
+
 ## GIT_ROOT_DIR
 
 This GIT_ROOT_DIR is only used in *THIS* file. It is not used
 anywhere. You should be able to find: ${GIT_ROOT_DIR}/.git
 
-The OFFICIAL name is LOSTARM_ROOT_DIR
+The OFFICIAL name is PROJ_ROOT_DIR
 
-## LOSTARM_ROOT_DIR
+## PROJ_ROOT_DIR
 
 This is the root directory of the project.
 
-We currently do not "install" the LOSTARM package, it just exists as a directory structure on your hard drive that you point to with an env variable.
+We currently do not "install" the LOSTARM package, it just exists as a
+directory structure on your hard drive that you point to with an env
+variable.
 
 The intent is that the entire package is 100% self contained within that directory.
 
-In 99.99% of the cases we believe LOSTARM_ROOT_DIR is exactly GIT_ROOT_DIR.
+In 99.99% of the cases we believe PROJ_ROOT_DIR is exactly GIT_ROOT_DIR.
 
-In your case you might only have a single cloned copy. For the maintainers (ie: ME), we might have two or three copies, yesterdays, today, an experiment. Etc.  By using this technique we can bounce between different instances of the tool.
+In your case you might only have a single cloned copy. For the
+maintainers (ie: ME), we might have two or three copies, yesterdays,
+today, an experiment. Etc.  By using this technique we can bounce
+between different instances of the tool.
 
-As anyone who has used Xilinx tool in a professional setting, it is helpful to have the entire package installed as a single directory, ie: c:\xilinx\vivado\2019.1 and c:\xilinx\vivado\2024.2 are both installed and one often needs to switch back and forth depending on what you are doing.
+As anyone who has used Xilinx tool in a professional setting, it is
+helpful to have the entire package installed as a single directory,
+ie: c:\xilinx\vivado\2019.1 and c:\xilinx\vivado\2024.2 are both
+installed and one often needs to switch back and forth depending on
+what you are doing.
 
-Xilinx accomplishes this via ENV variables and a shell script called: settings64.sh (or .bat) in each directory.
+Xilinx accomplishes this via ENV variables and a shell script called:
+settings64.sh (or .bat) in each directory.
 
 ## **If somebody on your IT team thinks this is dumb, tell them this:**
 
-The facts of life in the embedded world is this: When changing any tool from version X to version X+1, sometimes the project no longer builds or no longer works. All engineering activity stops abruptly and completely.
+The facts of life in the embedded world is this: When changing any
+tool from version X to version X+1, sometimes the project no longer
+builds or no longer works. All engineering activity stops abruptly and
+completely.
 
-Our IMS (Integrated Master Schedule) requires that it is trivial for us to be able to switch back to support a previous project, then switch forward to support a new or different project or even a third project. This is a hard requirement of our work flow.  This technique is perhaps the best way to solve that. It is so much simpler because each version is completely self contained within their own directories.
+Our IMS (Integrated Master Schedule) requires that it is trivial for
+us to be able to switch back to support a previous project, then
+switch forward to support a new or different project or even a third
+project. This is a hard requirement of our work flow.  This technique
+is perhaps the best way to solve that. It is so much simpler because
+each version is completely self contained within their own
+directories.
 
 ## Generic variable Naming conventions
 
-## LOSTARM - anything starting with LOSTARM
+## PROJ_ - anything starting with PROJ
 
-The goal of the LOSTARM_ set of names is to give us a clean namespace.
+The goal of the PROJ_ set of names is to give us a clean namespace.
 
-Unless there is some other project or thing known as LOSTARM we should
-be safe..
+## PROJ_ROOT_DIR - is special. This is the root directory of your project.
+
+All all file system paths are relative to this specific ENV Variable.
+
+## LOSTARM_ verses PROJ_ - in scripts
+
+The Text LOSTARM_ - appears properly in the C and ASM code.
+
+Only the scripts (non-C code) where orginally written using the prefix
+LOSTARM_ but we changed that to PROJ_ instead in the scripts only.
 
 ## \*\_DIR - is always a directory
 
@@ -111,44 +154,52 @@ c:/users/duane -> ALl three of these mean the same thing.
    which means we would normally execute these like this:
 
 ```bash
-   1. bash ${LOSTARM_somename_SH} ... parameters ...
-   2. cmd.exe /c ${LOSTARM_somename_BAT} ... parameters ...
-   3. ${LOSTARM_PYTHON_EXE} ${LOSTARM_somename_PY} ... parameters ...
-   4. powershell.exe ${LOSTARM_somename_PS1} ... parameters ...
-   5. xsct ${LOSTARM_somename_XTCL} ... parameters ...
-   6. tclsh ${LOSTARM_somename_TCL} ... parameters ...
+   1. bash ${PROJ_somename_SH} ... parameters ...
+   2. cmd.exe /c ${PROJ_somename_BAT} ... parameters ...
+   3. ${PROJ_PYTHON3_EXE} ${PROJ_somename_PY} ... parameters ...
+   4. powershell.exe ${PROJ_somename_PS1} ... parameters ...
+   5. xsct ${PROJ_somename_XTCL} ... parameters ...
+   6. tclsh ${PROJ_somename_TCL} ... parameters ...
 ```
 
-About: \_TCL, and \_XTCL - generally we are not using TCL anywhere. However, the current version of Xilinx I have and have used has a tool called: 'xsct' which is a TCL based tool.
+About: \_TCL, and \_XTCL - generally we are not using TCL
+anywhere. However, the current version of Xilinx I have and have used
+has a tool called: 'xsct' which is a TCL based tool.
 
-It is our understanding that starting with Xilinx 2026 that is deprecated and they will be migrating to their custom version of Python which has its own problems.
+It is our understanding that starting with Xilinx 2026 that is
+deprecated and they will be migrating to their custom version of
+Python which has its own problems.
+
+
 
 For details about PYTHON see:
 
-   ```${LOSTARM_ROOT_DIR}/ALL_ABOUT_PYTHON.md```
+   ```${PROJ_ROOT_DIR}/ALL_ABOUT_PYTHON.md```
 
-## LOSTARM_PYTHON_EXE - You must provide and set this
+## PROJ_PYTHON3_EXE - You must provide and set this
 
-   See [${LOSTARM_ROOT_DIR}/ALL_ABOUT_PYTHON.md](docs/ALL_ABOUT_PYTHON.md)
+   See [${PROJ_ROOT_DIR}/ALL_ABOUT_PYTHON.md](docs/ALL_ABOUT_PYTHON.md)
 
    In short, this is the absolute path to the python executable we use.
    This is a required variable you must provide.
 
    OFTEN this is set in your `${HOME}/.bashrc` file.
 
-## LOSTARM_HELPER_DIR - most often: ${LOSTARM_ROOT_DIR}/helper-scripts
+## PROJ_HELPER_DIR - most often: ${PROJ_ROOT_DIR}/helper-scripts
 
    The LOSTARM system uses many helper scripts.
    All of these helper scripts are found via this variable.
 
-## LOSTARM_BASH_DIR - most often: ${LOSTARM_HELPER_DIR}/bash
+## PROJ_BASH_DIR - most often: ${PROJ_HELPER_DIR}/bash
 
-## LOSTARM_PYTHON_DIR - most often: ${LOSTARM_HELPER_DIR}/python
+## PROJ_PYTHON_DIR - most often: ${PROJ_HELPER_DIR}/python
 
-## Today/Future
+## PROJ_POWERSHELL_DIR - This is future.
+
+## PROJ_TCL_DIR - This is future.
 
    Today there are no TCL, PS1, or BAT scripts.
 
    If and when they appear, they should go in some place like:
 
-   ```${LOSTARM_HELPER_SCRIPTS}/powershell```
+   ```${PROJ_HELPER_SCRIPTS}/powershell```

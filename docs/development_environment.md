@@ -1,7 +1,7 @@
 ## The general goal here is the user needs to install only this.
 
 1. Python - preferably Python 3.11 or later.
-2. They need to set the variable: "LOSTARM_PYTHON_EXE" accordingly.
+2. They need to set the variable: "PROJ_PYTHON3_EXE" accordingly.
 3. A C compiler of some type for their target.
 4. At that point, everything should just work.
 

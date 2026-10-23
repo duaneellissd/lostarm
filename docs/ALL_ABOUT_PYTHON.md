@@ -8,20 +8,23 @@ There are many other Env Variables, they are described here:
 
     `${PROJ_ROOT_DIR}/docs/ENV_VARS.md`
 
-### **`LOSTARM_PYTHON_EXE`**
+### **`PROJ_PYTHON3_EXE`**
 
+0. Note specifically, the variable contains the digit 3, we want Python Version 3 something, not Python Version 2.
 1. This package uses python extensively. And there are various problems with PYTHON in your path. (Described below).
 2. Thus we do not (on purpose) use the PYTHON application from your path (Reasons are described below). This must always resolve to an executable file that is Python.
 3. On a windows platform that means: `python.exe`
 4. On Linux/Mac it is the 'python' you wish to use, in some cases it might be a shell script that undoes the nastiness forced upon you by various IDEs you might be using (Described below in more detail).
 
-### **`LOSTARM_PYTHON_DIR`**
+### **`PROJ_PYTHON_DIR`**
 
 1. Most often this is `${PROJ_ROOT_DIR}/helper-scripts/python`
-2. There are various internal "python modules" that we do not install, and other python things. All of these things are stored in that directory.
-3. These modules can be found here `${LOSTARM_PYTHON_DIR}/modules`
+2. There are various internal "python modules" that we do not install, and other python things.
+3. Why? They are not ready for 'pypy' and they work as a package, for now it is easier this way.
+3. All of these things are stored in that directory.
+4. These modules can be found here `${PROJ_PYTHON_DIR}/modules`
 
-### **`LOSTARM_PYTHON_VENV_DIR`**
+### **`PROJ_VENV_DIR`**
 
 1. Most often it is: `${PROJ_ROOT_DIR}/.venv`
 2. This is where we will create and use our Python Virtual Environment.
@@ -35,6 +38,7 @@ At this point in Pythons life it has reached the old "DLL HELL"
 problem that early Microsoft Windows users had/have.
 
 Details here: [DLL HELL](https://en.wikipedia.org/wiki/DLL_hell)
+Also here: [DEPENDENCY HELL](https://en.wikipedia.org/wiki/Dependency_hell)
 
 Numerous engineering tools now offer Python Support. Most often, the tool has some scheme to provide a loadable binary Python Module. And that is the problem.
 
@@ -103,13 +107,13 @@ Exactly. The way PYTHON VENV works is by way of SHELL Environment variables and 
 
 Then you launch the vendors tool (sometimes via a helper script) and that script will change all of these ENV variables. For example it changes the PATH variable to put their version of Python at the front of the line. The IDE then launches some pre/post build script and nothing works any more.
 
-Hence, our scripts do not use PYTHON in your PATH and instead make use of `${LOSTARM_PYTHON_EXE}` to launch python.
+Hence, our scripts do not use PYTHON in your PATH and instead make use of `${PROJ_PYTHON3_EXE}` to launch python.
 
 ## Our solution is in several parts
 
 ### PART 1 - Avoid the PATH
 
-DO NOT Ever use the `PATH` version of PYTHON. In stead, we require a UNIQUE variable `LOSTARM_PYTHON_EXE`. This must exist and point to the version of python to use. If it does not exist, we die with a nasty error.
+DO NOT Ever use the `PATH` version of PYTHON. In stead, we require a UNIQUE variable `PROJ_PYTHON3_EXE`. This must exist and point to the version of python to use. If it does not exist, we die with a nasty error.
 
 Do not issue Warnings, DIE with a HUMAN useful error message.
 
@@ -145,7 +149,7 @@ Today, many of use use an IDE with a mouse, or a text based tool (Like VIM) and 
 
 We choose Option 2.
 
-### Part 4 our `${LOSTARM_PYTHON_VENV_DIR}`
+### Part 4 our `${PROJ_PYTHON_VENV_DIR}`
 
 Yes, we do create our own PYTHON Virtual Environment.
 
@@ -191,7 +195,7 @@ When we build/create the VENV, we install the generic one first, then we install
 
 The `requirements.txt` files are located here:
 
-    `${LOSTARM_PYTHON_HELPER_DIR}/modules/pip-modules`
+    `${PROJ_PYTHON_DIR}/modules/pip-modules`
     
 ## Using Other IDEs, Related ENV Vars
 
@@ -200,9 +204,9 @@ our PYTHON work? Or just use it.
 
 other tools:
 
-1. Pycharm - `${LOSTARM_PYCHARM_EXE}`
-2. VS CODE - `${LOSTARM_VSCODE_EXE}`
-3. VisualStudio - `${LOSTARM_VISUALSTUDIO_EXE}` community edition.
+1. Pycharm - `${PROJ_PYCHARM_EXE}`
+2. VS CODE - `${PROJ_VSCODE_EXE}`
+3. VisualStudio - `${PROJ_VISUALSTUDIO_EXE}` community edition.
 
 These should resolve to the means to launch your instance of the tool
 

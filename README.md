@@ -4,27 +4,48 @@
 
 ## Step 1: Assuming you have done the GIT CLONE
 
-   In this Markdown file, this is known as the `${GIT_CHECKOUT_DIR}`
-
-   This directory is also known as the `${PROJ_ROOT_DIR}`
+   This directory, where this README>md file is located is also known as `${PROJ_ROOT_DIR}`
 
 ## There are a lot more Markdown docs located here
 
    [`${PROJ_ROOT_DIR}/docs`](docs)
 
-## Step 2: Linux/Mac only (for now, future: Windows using GIT BASH)
+## Step 2: Linux/Mac only (for now, future: Windows using BAT files? Maybe.. Probably GitBash)
 
-## Step 3: This tool makes extensive use of Python
+   bash$ cd ${PROJ_ROOT_DIR}   <-- Where you checked this out.
+   bash$ . ./source_me.sh      <-- Source this file.
+
+## Step 3: This makes extensive use of Python
 
 Details here: [```${PROJ_ROOT_DIR}/ALL_ABOUT_PYTHON.md```](docs/ALL_ABOUT_PYTHON.md)
-  
-Yes, we make use of a Python VENV...
 
-Meanwhile: You must set an ENVIRONMENT variable as follows. Typically you would do this in your .bashrc file, then logout log back in.
-  
-   `export LOSTARM_PYTHON_EXE=/path/to/your/version/of/python`
+The above "./source_me.sh" script will do the following:
 
-## Step 4: Open a console and goto the ${PROJ_ROOT_DIR}
+   a) Setup a number of ENV Variables, see docs/ENV_VARS.md for details.
+
+   b) If a ${PROJ_ROOT_DIR}/.venv directory does not exist it will create one.
+
+   c) And it will create a Python Virtual Environment (VENV) in that directory.
+
+   d) I use a combination of PyCharm, VSCODE and Emacs as my IDE.
+
+   e) So - it also creates a ${PROJ_ROOT_DIR}/.vscode directory.
+
+   f) FUTURE: So - it also creates a ${PROJ_ROOT_DIR}/.idea directory
+
+   g) If the above is already present - most of those steps are skipped.
+   
+## Yes, we make use of a Python VENV...
+
+We STRONGLY suggest you set an ENV variable: "PROJ_PYTHON3_EXE"
+We suggest you do this in your ${HOME}/.bashrc
+
+Attention SYSADMINS: you can also do this in /etc/profile,
+/etc/environment, or /etc/profile.
+
+Details and reasons why are in: ${PROJ_ROOT_DIR}/docs/ALL_ABOUT_PYTHON.md
+
+## Step 4: Building a Hello World app (Linux Host)
 
 1) `bash $_`
 2) `cd ${PROJ_ROOT_DIR}`
@@ -36,15 +57,14 @@ Assuming Linux is your host, on Ubuntu:
    1) `sudo apt get update`
    2) `sudo apt install build-essential`
 
-What is required is this:
+Effectively what we require is:
+   1) Python 3.10? or later.
+   2) GCC that compiles a linux app from the command line.
+   3) The well known: "make" tool.
 
-1) Python, via `LOSTARM_PYTHON_EXE`
-2) Complete GCC toolchain, (or clang) for the host
-3) GNU Make (We generate Makefile(s))
-4) MAC ONLY: xcode - we generate GNU XCode Project files
-5) Windows Only: Visual Studio Community Edition (We generate visual studio project files)
-6) CROSS Only: We generate various Eclipse Project files.
-7) The suggestion is to start with the host, then look at the cross compile features later
+For Cross Compiling to an ARM Cortex Target, we require some form of
+GCC for the cortex cpu.  I use (borrow) the GCC cortex compiler from
+STM Cube Suite, but you can use others.
 
 ## Step 6:  Run the CI/CD Build script
 
