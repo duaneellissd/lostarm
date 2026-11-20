@@ -1,0 +1,5 @@
+To test various modes, specify the mode
+usage: ./do_test_1.sh 0
+usage: ./do_test_1.sh 1
+usage: ./do_test_1.sh 2
+usage: ./do_test_1.sh 3
