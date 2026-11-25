@@ -1,0 +1,41 @@
+test_a004.txt:1->
+test_a004.txt:2->This tests various error cases with include
+test_a004.txt:3->
+test_a004.txt:4->_NEXT_LINE_FAILS_
+EXPECT ERROR: Crap at start: @INCLUDE( somename )@
+test_a004.txt:5->had-error-as-expected
+test_a004.txt:6->
+test_a004.txt:7->_NEXT_LINE_FAILS_
+EXPECT ERROR: @INCLUDE( somename )@ crap at end.
+test_a004.txt:8->had-error-as-expected
+test_a004.txt:9->
+test_a004.txt:10->_NEXT_LINE_FAILS_
+EXPECT ERROR: @INCLUDE( "bad-quotes )@
+test_a004.txt:11->had-error-as-expected
+test_a004.txt:12->
+test_a004.txt:13->_NEXT_LINE_FAILS_
+EXPECT ERROR: @INCLUDE( "missing-close"
+test_a004.txt:14->had-error-as-expected
+test_a004.txt:15->
+test_a004.txt:16->_NEXT_LINE_FAILS_
+EXPECT ERROR: @INCLUDE( "with-comment" )@ bad-text here
+test_a004.txt:17->had-error-as-expected
+test_a004.txt:18->
+test_a004.txt:19->_NEXT_LINE_FAILS_
+EXPECT ERROR: @INCLUDE_GARBAGE_NAME_HERE( blah balh )@
+test_a004.txt:20->had-error-as-expected
+test_a004.txt:21->
+test_a004.txt:22->_NEXT_LINE_FAILS_
+EXPECT ERROR: @INCLUDE_ADD_SEARCH_DIR( some-non-existing-directory )@
+test_a004.txt:23->had-error-as-expected
+test_a004.txt:24->
+test_a004.txt:25->_NEXT_LINE_FAILS_
+EXPECT ERROR: @INCLUDE( internal-"-quotes )@
+test_a004.txt:26->had-error-as-expected
+test_a004.txt:27->
+test_a004.txt:28->_NEXT_LINE_FAILS_
+EXPECT ERROR: @INCLUDE( non-existing-file )@
+test_a004.txt:29->had-error-as-expected
+test_a004.txt:30->
+test_a004.txt:31->_SKIP_NEXT_LINE_
+test_a004.txt:32->This line should be skipped.

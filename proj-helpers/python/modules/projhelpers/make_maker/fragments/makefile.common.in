@@ -1,0 +1,18 @@
+# -*- mode: Makefile -*-
+
+# Default to quiet output
+HIDE := @
+
+ifeq ($(V),1)
+    # Turn off the '@' so commands are printed
+    HIDE :=
+endif
+
+ifeq ($(v),1)
+     $error("Please use capital: V=1, not lower: v=1")
+endif
+
+whatis_%: 
+	  @echo "${*} = |${${*}}|"
+
+remake: clean _default

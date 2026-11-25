@@ -1,0 +1,3 @@
+
+Some file in the same directory
+used to test the INCLUDE feature.

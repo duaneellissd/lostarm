@@ -1,0 +1,103 @@
+# -*- mode: Makefile -*-
+
+#========================================
+# The entires in this file all begin/end with RULE_BEGIN/RULE_END.
+# Each requires a parameter, ie: c2i or c2o
+#
+# Each rule matches a SOURCE file extension and GOAL file extension.
+# ie:  c2i means: compile a .c file to an .i file
+#
+# The text upto the RULE_END is captured for later.
+# 
+# Eventually, you will find: @RULES_HERE@
+# At that point, the engine does this:
+#
+#    FOR_EACH_SOURCE_FILE:
+#        Compute: TARGET_FILENAME, TARGET_DIR, and TARGET_EXT, TARGET_BASENAME
+#        Based on the extension, execute each "RULE" that matches.
+#    Done.
+#
+
+@RULE_BEGIN( c2i )@
+@TARGET_FILENAME@ : @SRC_FILENAME@
+	@echo "Compile c2i: @SRC_FILENAME@"
+	@mkdir -p @TARGET_DIRNAME@
+	${HIDE}${CC} ${CFLAGS} -E -o $@ $*
+@RULE_END( c2i )@
+
+@RULE_BEGIN( c2s )@
+@TARGET_FILENAME@ : @SRC_FILENAME@
+	@echo "Compile: c2s: @SRC_FILENAME@"
+	@mkdir -p @TARGET_DIRNAME@
+	${HIDE}${CC} ${CFLAGS} -S -o $@ $*
+@RULE_END( c2s )@
+
+@RULE_BEGIN( c2o )@
+-include @TARGET_DIRNAME@/@TARGET_BASENAME@.d
+
+@TARGET_FILENAME@: @SRC_FILENAME@
+	@echo "Compile: c2s: @SRC_FILENAME@"
+	@mkdir -p @TARGET_DIRNAME@
+	${HIDE}${CC} ${CFLAGS} -c -o $@ $*
+
+ALL_OBJS += @TARGET_FILENAME@
+
+@RULE_END( c2o )@
+
+@RULE_BEGIN( cxx2i )@
+@TARGET_FILENAME@ : @SRC_FILENAME@
+	@echo "Compile cxx2i: @SRC_FILENAME@"
+	@mkdir -p @TARGET_DIRNAME@
+	${HIDE}${CXX} ${CFLAGS} -E -o $@ $*
+@RULE_END( cxx2i )@
+
+@RULE_BEGIN( cxx2s )@
+@TARGET_FILENAME@ : @SRC_FILENAME@
+	@echo "Compile: cxx2s: @SRC_FILENAME@"
+	@mkdir -p @TARGET_DIRNAME@
+	${HIDE}${CXX} ${CXXFLAGS} -S -o $@ $*
+@RULE_END( cxx2s )@
+
+@RULE_BEGIN( cxx2o )@
+-include @TARGET_DIRNAME@/@TARGET_BASENAME@.d
+
+@TARGET_FILENAME@: @SRC_FILENAME@
+	@echo "Compile: cxx2s: @SRC_FILENAME@"
+	@mkdir -p @TARGET_DIRNAME@
+	${HIDE}${CXX} ${CFLAGS} -c -o $@ $*
+
+ALL_OBJS += @TARGET_FILENAME@
+
+@RULE_END( cxx2o )@
+
+@RULE_BEGIN( s2i )@
+@TARGET_FILENAME@ : @SRC_FILENAME@
+	@echo "Compile s2i: @SRC_FILENAME@"
+	@mkdir -p @TARGET_DIRNAME@
+	${HIDE}${CC} ${ASFLAGS} -E -o $@ $*
+@RULE_END( s2i )@
+
+@RULE_BEGIN( s2o )@
+-include @TARGET_DIRNAME@/@TARGET_BASENAME@.d
+
+@TARGET_FILENAME@: @SRC_FILENAME@
+	@echo "Compile: s2o: @SRC_FILENAME@"
+	@mkdir -p @TARGET_DIRNAME@
+	${HIDE}${CC} ${ASFLAGS} -c -o $@ $*
+
+ALL_OBJS += @TARGET_FILENAME@
+
+@RULE_END( cxx2o )@
+
+LDFLAGS += -gdwarf
+LDFLAGS += ${LDFLAGS_cpu}
+LDFLAGS += ${LDFLAGS_lib_dirs}
+LDFLAGS += ${LDFLAGS_libs}
+@IF_DEFINED( LINKER_SCRIPT )@
+LINKER_SCRIPT=@LINKER_SCRIPT@
+LDFLAGS += -T ${LINKER_SCRIPT}
+@ENDIF@
+
+${OBJ_DIR}/${APP_NAME}.elf: ${ALL_OBJS}
+	@mkdir -p ${OBJ_DIR}
+	${CXX} -o $@ ${LDFLAGS} ${ALL_OBJ

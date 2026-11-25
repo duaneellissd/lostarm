@@ -1,0 +1,147 @@
+{
+    // -*- mode: JavaScript -*-
+    // This is a JSON5 format file
+    // Bascially JSON5 is json with C style comments.
+    //           JSON5 supports a few other "human friendly features"
+    //========================================
+    // This is a "makerules" file
+    // It defines the steps to create makefile rules.
+    // hence the type is: "makefile.rules" file.
+    "type" : "makefile.rules",
+    // Things we expect to be defind by the Makefile template
+    "predefines" : [
+	"ECHO",
+	"HIDE",
+	"MKDIR_P"
+    ],
+
+    "vars" : [
+	{ "COMPILER?=","gcc" }
+    ]
+
+    "include" : "vars.${COMPILER}.json",
+    
+	
+	{ "${if( COMPILER, \"gcc.vars.json\" )}" }
+	
+xoifneq ($(LLVM),)
+else
+CC		= $(CROSS_COMPILE)gcc
+LD		= $(CROSS_COMPILE)ld
+AR		= $(CROSS_COMPILE)ar
+NM		= $(CROSS_COMPILE)nm
+OBJCOPY		= $(CROSS_COMPILE)objcopy
+OBJDUMP		= $(CROSS_COMPILE)objdump
+READELF		= $(CROSS_COMPILE)readelf
+STRIP		= $(CROSS_COMPILE)strip
+endif
+    
+    // the RULEs in this JSON file match these source files
+    "sourcefiles" : [
+	"*.c",
+	"*.S",
+	"*.cpp"
+    ],
+    // For each source files we process
+    // STEP 1 - We evaulate these vars once
+    "vars.once" : [
+	// ALL Paths are relative to the BASE_DIR
+	"BASE_DIR"          : "${PROJ_ROOT_DIR}",
+    ],
+    
+    // STEP 2 - for each file, we evaluate/create these vars too.
+    "vars.foreach" : [	
+	// The source filename relative to the BASE_DIR
+	{ "REL_SRC_FILENAME" : "${relative_path( ${BASE_DIR}, ${THIS_ABS_SOURCE_FILENAME})"},
+	// this is printed inside each rule
+	{ "COMPILE_MESSAGE" : "${HIDE} ${ECHO} Compile: ${FOREACH_N_OF_N} ${THIS_SRC_FILENAME}" },
+	// the OBJ file we are creating.
+	{ "THIS_O_FILENAME" : "${os.path.join( ${THIS_OBJ_DIR}, ${change_ext( ${REL_SRC_FILENAME}, \".*\", \".o\" )})}"},
+	{ "THIS_O_DIRNAME"  : "${os.path.dirname( ${THIS_O_FILENAME} ) }",
+	// the makefile dependency file gcc will create for us.
+	{ "THIS_D_FILENAME" : "${os.path.join( ${THIS_OBJ_DIR}, ${change_ext( ${REL_SRC_FILENAME}, \".*\", \".d\" )})}"},
+	 
+	// the compile to asm source output
+	// we collecively call all of these "junk" files
+	"THIS_JUNK_FILENAME" : "${os.path.join( ${JUNK_DIR}, ${os.path.basename( ${ABS_SOURCE_FILENAME})})}",
+	"THIS_JUNK_I_FILENAME": "${change_ext( ${THIS_JUNK_FILENAME}, \".*\", \".i\")}",
+	"THIS_JUNK_S_FILENAME": "${change_ext( ${THIS_JUNK_FILENAME}, \".*\", \".s\")}",
+	// Once the "vars.foreach" is done for this filename we do the rules.foreach.
+	}
+    ],
+    
+    // For each FILE we output RULES
+    // For each FILE atleast one of these must match.
+    "rules.foreach" : [
+	// The "*" rule matches all things
+	{
+	    "*"   : [
+		// here we just include our D file */
+		"-include ${THIS_D_FILENAME}",
+		"",
+		"${THIS_O_DIRNAME}:: FORCE\n",
+		"\t${MKDIR_P} ${THIS_O_DIRNAME}"
+		
+	    ]
+	},
+	{
+	    "c2i" : [
+		"${THIS_JUNK_I_FILENAME}: ${JUNK_DIR} ${REL_SRC_FILENAME}",
+		"\t${COMPILE_MESSAGE}",
+		"\t${COMPILE_c2i} -c ${REL_SRC_FILENAME} -o ${THIS_JUNK_I_FILENAME}",
+		// blank line
+		""
+	    ]
+	},
+	{
+	    "s2i" : [
+		"${THIS_JUNK_I_FILENAME}: ${JUNK_DIR} ${REL_SRC_FILENAME}",
+		"\t${COMPILE_MESSAGE}",
+		"\t${COMPILE_s2i} -c ${REL_SRC_FILENAME} -o ${THIS_JUNK_I_FILENAME}",
+		// blank line
+		""	    
+	    ]
+	}
+	{
+	    "c2s" : [
+		"${THIS_JUNK_S_FILENAME}: ${JUNK_DIR} ${REL_SRC_FILENAME}",
+		"\t${COMPILE_MESSAGE}",
+		"\t${COMPILE_c2i} -c ${REL_SRC_FILENAME} -o ${THIS_JUNK_S_FILENAME}",
+		// blank line
+		""
+	    ]
+	},
+	{
+	    "c2o" : [
+		"${THIS_O_FILENAME}:: ${THIS_O_DIRNAME} ${REL_SRC_FILENAME}",
+		"\t${COMPILE_MESSAGE}",
+		"\t${COMPILE_c2o} -c ${REL_SRC_FILENAME} -o ${THIS_O_FILENAME}",
+		// blank line
+		""
+	    ]
+	},
+	{
+	    "s2o" : [
+		"${THIS_O_FILENAME}:: ${THIS_O_DIRNAME} ${REL_SRC_FILENAME}",
+		"\t${COMPILE_MESSAGE}",
+		"\t${COMPILE_s2o} -c ${REL_SRC_FILENAME} -o ${THIS_O_FILENAME}",
+		// blank line
+		""
+	    ]
+	},
+	{
+	    "cxx2o" : [
+		"${THIS_O_FILENAME}:: ${THIS_O_DIRNAME} ${REL_SRC_FILENAME}",
+		"\t${COMPILE_MESSAGE}",
+		"\t${COMPILE_cxx2o} -c ${REL_SRC_FILENAME} -o ${THIS_O_FILENAME}",
+		// blank line
+		""
+	    ]
+	}
+    ]
+}
+
+    
+    
+	
+	    

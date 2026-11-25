@@ -1,0 +1,6 @@
+test_a001.txt:1->
+test_a001.txt:2->This is a simple file with no changes no features
+test_a001.txt:3->
+test_a001.txt:4->just simple text in some format.
+test_a001.txt:5->
+test_a001.txt:6->The End.

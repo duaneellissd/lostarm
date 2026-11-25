@@ -1,0 +1,33 @@
+this tests macros
+
+@MACRO_BEGIN(FooBar)@
+
+This is the macro foobar.
+
+@MACRO_END( FooBar )@
+
+_NEXT_LINE_FAILS_
+test start of line @MACRO_BEGIN(FooBar)@
+
+_NEXT_LINE_FAILS_
+@MACRO_BEGIN(FooBar)@ crap at end of line.
+
+# normal case
+_INVOKE_MACRO_GOOD_ FooBar
+# non-existing case
+# this is handled differently the a parse error.
+_INVOKE_MACRO_BAD_ Foobar
+
+_NEXT_LINE_FAILS_
+@MACRO_BEGIN( name
+
+_NEXT_LINE_FAILS_
+@MACRO_BEGIN( name )@
+
+the closing name is not the same
+@MACRO_END( Name )@
+
+_NEXT_LINE_FAILS_
+@MACRO_BEGIN( Name )@
+
+The error here is there is no macro end.

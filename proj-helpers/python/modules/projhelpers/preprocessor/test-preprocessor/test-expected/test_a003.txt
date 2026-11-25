@@ -1,0 +1,30 @@
+test_a003.txt:1->this tests macros
+test_a003.txt:2->
+test_a003.txt:8->
+test_a003.txt:9->_NEXT_LINE_FAILS_
+EXPECT ERROR: test start of line @MACRO_BEGIN(FooBar)@
+test_a003.txt:10->had-error-as-expected
+test_a003.txt:11->
+test_a003.txt:12->_NEXT_LINE_FAILS_
+EXPECT ERROR: @MACRO_BEGIN(FooBar)@ crap at end of line.
+test_a003.txt:13->had-error-as-expected
+test_a003.txt:14->
+test_a003.txt:15-># normal case
+test_a003.txt:3->invoked-macro: GOOD_ FooBar
+test_a003.txt:4->
+test_a003.txt:5->This is the macro foobar.
+test_a003.txt:6->
+test_a003.txt:17-># non-existing case
+test_a003.txt:18-># this is handled differently the a parse error.
+test_a003.txt:19->pass: Foobar is not a valid macro name
+test_a003.txt:20->
+test_a003.txt:21->_NEXT_LINE_FAILS_
+EXPECT ERROR: @MACRO_BEGIN( name
+test_a003.txt:22->had-error-as-expected
+test_a003.txt:23->
+test_a003.txt:24->_NEXT_LINE_FAILS_
+EXPECT ERROR: @MACRO_BEGIN( name )@
+test_a003.txt:28->had-error-as-expected
+test_a003.txt:29->
+test_a003.txt:30->_NEXT_LINE_FAILS_
+EXPECT ERROR: @MACRO_BEGIN( Name )@

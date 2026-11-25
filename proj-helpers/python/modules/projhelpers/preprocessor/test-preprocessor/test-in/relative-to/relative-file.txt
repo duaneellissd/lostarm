@@ -1,0 +1,3 @@
+This file is in a relative directory
+
+@INCLUDE( "relative-to-this-too/second-relative.txt" )@
