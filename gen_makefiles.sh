@@ -15,4 +15,4 @@ else
     exit 1
 fi
     
-$PROJ_PYTHON3_EXE gen_makefiles.py
+$PROJ_PYTHON_EXE gen_makefiles.py

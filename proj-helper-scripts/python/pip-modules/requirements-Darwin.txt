@@ -1,5 +1,0 @@
-crcmod
-pyexpect
-pyserial
-pyelftools
-

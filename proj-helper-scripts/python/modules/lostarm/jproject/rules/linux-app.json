@@ -1,4 +1,0 @@
-{
-    "type" : "linux.app",
-    "include" : "generic-gcc.json"
-}

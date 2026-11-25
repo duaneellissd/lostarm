@@ -1,3 +1,0 @@
-This is a file in the other directory
-it is only searchable via the search path.
-
